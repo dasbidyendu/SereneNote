@@ -58,8 +58,13 @@ export default function CommunityPage() {
         getPublicJournalEntries(firestore),
         getAllUsers(firestore)
       ]).then(([entries, users]) => {
-          setAllEntries(entries);
-          setFilteredEntries(entries); // Initially show all entries
+          const sortedEntries = entries.sort((a, b) => {
+            const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+            const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+            return dateB - dateA;
+          });
+          setAllEntries(sortedEntries);
+          setFilteredEntries(sortedEntries);
           setAllUsers(users);
           setLoading(false);
         })
@@ -91,10 +96,12 @@ export default function CommunityPage() {
     setFilteredEntries(entryResults);
     
     if (user) {
-        const userResults = allUsers.filter(u => 
-            u.id !== user.uid && 
-            (u.name.toLowerCase().includes(lowercasedTerm) || (u.bio && u.bio.toLowerCase().includes(lowercasedTerm)))
-        );
+        const userResults = allUsers.filter(u => {
+            if (u.id === user.uid) return false;
+            const nameMatch = u.name.toLowerCase().includes(lowercasedTerm);
+            const bioMatch = u.bio ? u.bio.toLowerCase().includes(lowercasedTerm) : false;
+            return nameMatch || bioMatch;
+        });
         setFilteredUsers(userResults);
     }
 
@@ -175,7 +182,7 @@ export default function CommunityPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             ref={searchInputRef}
-            placeholder="Search journals, users, or content..."
+            placeholder="Search journals or users..."
             className="pl-9 w-full md:w-64"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -210,7 +217,7 @@ export default function CommunityPage() {
                 <CardContent className="overflow-hidden">
                   <ScrollArea className="h-[55vh]">
                     {hasResults ? (
-                       <div className="space-y-6">
+                       <div className="space-y-6 p-1">
                         {filteredUsers.length > 0 && (
                           <div className="space-y-4">
                             <h2 className="text-xl font-bold font-headline px-2">Users</h2>
@@ -259,23 +266,25 @@ export default function CommunityPage() {
         )}
       </AnimatePresence>
 
-      <div className={cn("grid gap-6 md:grid-cols-2 lg:grid-cols-3",showSearchResults && 'pointer-events-none opacity-0')}>
+      <div className={cn("transition-opacity", showSearchResults && 'pointer-events-none opacity-0')}>
         {loading ? (
           <div className="col-span-full flex justify-center items-center h-64">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         ) : allEntries.length > 0 ? (
-          allEntries.map(entry => (
-              <JournalCard
-              key={entry.id}
-              entry={entry}
-              onSelect={handleSelectEntry}
-              showAuthor={true}
-              user={user}
-              isFollowing={isFollowing(entry.authorId)}
-              onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
-              />
-          ))
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {allEntries.map(entry => (
+                  <JournalCard
+                  key={entry.id}
+                  entry={entry}
+                  onSelect={handleSelectEntry}
+                  showAuthor={true}
+                  user={user}
+                  isFollowing={isFollowing(entry.authorId)}
+                  onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+                  />
+              ))}
+          </div>
         ) : (
             <div className="col-span-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
               <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
