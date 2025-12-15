@@ -22,6 +22,7 @@ import {
   Users,
   CalendarDays,
   LogOut,
+  Wand2,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePathname, useRouter } from 'next/navigation';
@@ -31,6 +32,7 @@ import { Separator } from '@/components/ui/separator';
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/new-entry', icon: PlusSquare, label: 'New Entry' },
+  { href: '/dashboard/cbt-analysis', icon: Wand2, label: 'CBT Analysis' },
   { href: '/dashboard/daily-mood', icon: CalendarDays, label: 'Daily Mood' },
   { href: '/dashboard/private-journals', icon: Lock, label: 'Private Journals' },
   { href: '/dashboard/public-journals', icon: Globe, label: 'Public Journals' },
