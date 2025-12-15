@@ -3,22 +3,22 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { ArrowRight, BarChart, Bot, Users } from 'lucide-react';
+import { ArrowRight, BarChart, Bot, Users, Heart, Star, MessageSquare, CheckCircle } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { PageShell } from '@/components/page-shell';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 function Header() {
   return (
     <header className="absolute top-0 left-0 right-0 z-10 p-4">
       <div className="container mx-auto flex justify-between items-center">
         <Logo />
-        <nav className="hidden md:flex items-center gap-4">
-          <Button variant="ghost" asChild>
-            <Link href="#features">Features</Link>
-          </Button>
-          <Button variant="ghost" asChild>
-            <Link href="#about">About</Link>
-          </Button>
+        <nav className="hidden md:flex items-center gap-2">
+          <Button variant="ghost" asChild><Link href="#features">Features</Link></Button>
+          <Button variant="ghost" asChild><Link href="#about">About</Link></Button>
+          <Button variant="ghost" asChild><Link href="#how-we-help">How We Help</Link></Button>
+          <Button variant="ghost" asChild><Link href="#ratings">Ratings</Link></Button>
+          <Button variant="ghost" asChild><Link href="#contact">Contact Us</Link></Button>
         </nav>
         <Button asChild>
           <Link href="/login">
@@ -32,7 +32,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="w-full p-8 bg-background/50">
+    <footer className="w-full p-8 bg-secondary/30">
       <div className="container mx-auto text-center text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} SereneNote. All rights reserved.</p>
       </div>
@@ -45,23 +45,59 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: <BarChart className="h-8 w-8 text-accent" />,
+      icon: <BarChart className="h-8 w-8 text-primary" />,
       title: 'Mood Tracking',
       description: 'Visualize your emotional journey with our intuitive mood tracking and analysis tools.',
       image: PlaceHolderImages.find(p => p.id === 'feature-mood'),
     },
     {
-      icon: <Bot className="h-8 w-8 text-accent" />,
+      icon: <Bot className="h-8 w-8 text-primary" />,
       title: 'CBT Suggestions',
       description: 'Receive AI-powered, personalized suggestions based on Cognitive Behavioral Therapy.',
       image: PlaceHolderImages.find(p => p.id === 'feature-cbt'),
     },
     {
-      icon: <Users className="h-8 w-8 text-accent" />,
+      icon: <Users className="h-8 w-8 text-primary" />,
       title: 'Community',
       description: 'Connect with others by sharing your public journals and reading their stories.',
       image: PlaceHolderImages.find(p => p.id === 'feature-community'),
     },
+  ];
+
+  const helpItems = [
+    {
+      icon: <CheckCircle className="h-8 w-8 text-primary" />,
+      title: 'Develop Self-Awareness',
+      description: 'Understand your emotional patterns and triggers through daily journaling and mood tracking.'
+    },
+    {
+      icon: <Heart className="h-8 w-8 text-primary" />,
+      title: 'Reduce Stress & Anxiety',
+      description: 'Leverage CBT-based techniques and AI suggestions to manage stress in a healthy way.'
+    },
+    {
+      icon: <MessageSquare className="h-8 w-8 text-primary" />,
+      title: 'Feel Connected',
+      description: 'Optionally share your journey and draw strength from a supportive community of peers.'
+    }
+  ];
+
+  const ratings = [
+    {
+      name: 'Alex D.',
+      comment: '"SereneNote has been a game-changer for my mental health. The AI suggestions are surprisingly insightful!"',
+      stars: 5,
+    },
+    {
+      name: 'Samantha P.',
+      comment: '"I love the community feature. It makes me feel less alone in my struggles. Beautifully designed app."',
+      stars: 5,
+    },
+    {
+      name: 'Michael R.',
+      comment: '"A simple yet powerful tool. Tracking my mood has helped me see patterns I never noticed before."',
+      stars: 4,
+    }
   ];
 
   return (
@@ -80,7 +116,7 @@ export default function LandingPage() {
               data-ai-hint={heroImage.imageHint}
             />
           )}
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/30" />
           <div className="relative z-10 p-4">
             <h1 className="text-4xl md:text-6xl font-bold font-headline mb-4 text-shadow-lg">
               Find Your Inner Peace
@@ -107,7 +143,7 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="overflow-hidden">
+                <Card key={index} className="overflow-hidden bg-card/80 backdrop-blur-sm">
                   {feature.image && (
                      <Image
                       src={feature.image.imageUrl}
@@ -120,8 +156,8 @@ export default function LandingPage() {
                   )}
                   <CardHeader>
                     <div className="flex items-center gap-4">
-                       <div className="bg-accent/20 p-3 rounded-lg">{feature.icon}</div>
-                       <CardTitle className="font-headline">{feature.title}</CardTitle>
+                       <div className="bg-primary/20 p-3 rounded-lg">{feature.icon}</div>
+                       <CardTitle className="font-headline text-xl">{feature.title}</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -144,6 +180,79 @@ export default function LandingPage() {
             </p>
           </div>
         </section>
+
+        {/* How We Help Section */}
+        <section id="how-we-help" className="py-16 md:py-24 bg-secondary/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">How We Help You</h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Guiding you towards a more balanced and mindful state of being.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {helpItems.map((item, index) => (
+                <Card key={index} className="text-center p-6 bg-card/80 backdrop-blur-sm">
+                  <div className="flex justify-center mb-4">
+                    <div className="bg-primary/20 p-4 rounded-full">{item.icon}</div>
+                  </div>
+                  <h3 className="text-xl font-bold font-headline mb-2">{item.title}</h3>
+                  <p className="text-muted-foreground">{item.description}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Ratings Section */}
+        <section id="ratings" className="py-16 md:py-24">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">What Our Users Say</h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Real stories from people on their journey with SereneNote.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {ratings.map((rating, index) => (
+                <Card key={index} className="p-6 bg-card/80 backdrop-blur-sm">
+                   <CardContent className="p-0">
+                    <div className="flex items-center mb-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star key={i} className={`h-5 w-5 ${i < rating.stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/50'}`} />
+                      ))}
+                    </div>
+                    <p className="text-muted-foreground italic mb-4">{rating.comment}</p>
+                    <p className="font-bold text-right">- {rating.name}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Us Section */}
+        <section id="contact" className="py-16 md:py-24 bg-secondary/30">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Get In Touch</h2>
+              <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+                Have questions or feedback? We'd love to hear from you.
+              </p>
+            </div>
+            <Card className="max-w-xl mx-auto p-6 bg-card/80 backdrop-blur-sm">
+              <CardContent className="p-0">
+                <form className="space-y-4">
+                  <Input type="text" placeholder="Your Name" />
+                  <Input type="email" placeholder="Your Email" />
+                  <Textarea placeholder="Your Message" rows={5} />
+                  <Button type="submit" className="w-full">Send Message</Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
       </main>
       <Footer />
     </div>

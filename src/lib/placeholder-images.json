@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero",
-      "description": "A calming, abstract background image for the hero section.",
-      "imageUrl": "https://images.unsplash.com/photo-1759914514194-b5883244e683?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y2FsbSUyMGFic3RyYWN0fGVufDB8fHx8MTc2NTc4Mjc2OHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "calm abstract"
+      "description": "A calming, abstract pink background image for the hero section.",
+      "imageUrl": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYWxtJTIwYWJzdHJhY3QlMjBwaW5rfGVufDB8fHx8MTc2NTk0MjAwNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "calm abstract pink"
     },
     {
       "id": "feature-mood",
