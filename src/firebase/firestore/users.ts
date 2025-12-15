@@ -5,6 +5,7 @@ export interface UserProfile {
   name: string;
   email: string;
   bio?: string;
+  photoURL?: string;
 }
 
 export async function getUserProfile(db: Firestore, userId: string): Promise<UserProfile | null> {

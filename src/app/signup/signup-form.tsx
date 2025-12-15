@@ -53,6 +53,7 @@ export function SignupForm() {
           name,
           email,
           bio: '',
+          photoURL: user.photoURL,
         });
       }
 

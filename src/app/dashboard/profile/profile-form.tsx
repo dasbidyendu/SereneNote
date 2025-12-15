@@ -112,7 +112,7 @@ export function ProfileForm() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !firestore) return;
 
     setIsUploading(true);
 
@@ -130,6 +130,9 @@ export function ProfileForm() {
         if (auth.currentUser) {
           await updateProfile(auth.currentUser, { photoURL });
         }
+        
+        // Also update the photoURL in the Firestore user profile
+        await setUserProfile(firestore, user.uid, { photoURL });
         
         toast({
           title: 'Avatar Updated',

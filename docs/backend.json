@@ -17,6 +17,11 @@
         "bio": {
           "type": "string",
           "description": "A short biography of the user."
+        },
+        "photoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the user's profile picture."
         }
       },
       "required": ["name", "email"]
