@@ -55,6 +55,7 @@ export function SignupForm() {
           bio: '',
           photoURL: user.photoURL,
           following: [],
+          followers: [],
         });
       }
 

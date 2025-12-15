@@ -19,13 +19,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Users, UserPlus } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useEffect, useRef, useState } from 'react';
 import { updateProfile } from 'firebase/auth';
 import { getFirebaseServices } from '@/firebase/client';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
-import { getUserProfile, setUserProfile } from '@/firebase/firestore/users';
+import { getUserProfile, setUserProfile, UserProfile } from '@/firebase/firestore/users';
+import { Separator } from '@/components/ui/separator';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -41,6 +42,7 @@ export function ProfileForm() {
   const { auth, firestore } = getFirebaseServices();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
@@ -63,6 +65,7 @@ export function ProfileForm() {
       getUserProfile(firestore, user.uid).then(profile => {
         if (profile) {
           form.setValue('bio', profile.bio || '');
+          setProfileData(profile);
         }
       });
     }
@@ -95,7 +98,14 @@ export function ProfileForm() {
       if(auth.currentUser) {
         // reload user to get the latest data
         await auth.currentUser.reload();
-        setUser(auth.currentUser);
+        const updatedUser = { ...auth.currentUser };
+        setUser(updatedUser);
+        
+        // Also refetch profile data to update follower/following counts display
+         const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
+         if (updatedProfile) {
+           setProfileData(updatedProfile);
+         }
       }
       
       toast({
@@ -140,11 +150,15 @@ export function ProfileForm() {
         
         await setUserProfile(firestore, user.uid, { photoURL });
         
-        // Refresh the user state to get the updated photoURL
         if (auth.currentUser) {
           await auth.currentUser.reload();
-          // By creating a new user object, we force React to re-render.
-          setUser({ ...auth.currentUser });
+          const updatedUser = { ...auth.currentUser };
+          setUser(updatedUser);
+          
+          const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
+          if (updatedProfile) {
+            setProfileData(updatedProfile);
+          }
         }
         
         toast({
@@ -176,9 +190,9 @@ export function ProfileForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
               <div className="relative">
-                <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
                   <AvatarImage src={user?.photoURL || ''} data-ai-hint="person portrait" />
                   <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
@@ -188,9 +202,20 @@ export function ProfileForm() {
                 </Button>
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               </div>
-              <p className="text-sm text-muted-foreground">Click the camera to upload a new photo.</p>
+              <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left">
+                <div className="flex flex-col items-center">
+                   <span className="text-2xl font-bold">{profileData?.followers?.length || 0}</span>
+                   <span className="text-sm text-muted-foreground">Followers</span>
+                </div>
+                 <div className="flex flex-col items-center">
+                   <span className="text-2xl font-bold">{profileData?.following?.length || 0}</span>
+                   <span className="text-sm text-muted-foreground">Following</span>
+                </div>
+              </div>
             </div>
           
+            <Separator />
+
             <FormField
               control={form.control}
               name="name"

@@ -9,6 +9,7 @@ export interface UserProfile {
   bio?: string;
   photoURL?: string;
   following?: string[];
+  followers?: string[];
 }
 
 export async function getUserProfile(db: Firestore, userId: string): Promise<UserProfile | null> {
@@ -24,25 +25,36 @@ export async function getUserProfile(db: Firestore, userId: string): Promise<Use
 
 export async function setUserProfile(db: Firestore, userId: string, data: Partial<UserProfile>) {
   const docRef = doc(db, 'users', userId);
-  // Ensure 'following' is initialized if not present
+  // Ensure 'following' and 'followers' are initialized if not present
   const initialData = {
     ...data,
     following: data.following || [],
+    followers: data.followers || [],
   };
   await setDoc(docRef, initialData, { merge: true });
 }
 
 export async function followUser(db: Firestore, currentUserId: string, targetUserId: string) {
-  const userRef = doc(db, 'users', currentUserId);
-  await updateDoc(userRef, {
+  const currentUserRef = doc(db, 'users', currentUserId);
+  const targetUserRef = doc(db, 'users', targetUserId);
+  
+  await updateDoc(currentUserRef, {
     following: arrayUnion(targetUserId)
+  });
+  await updateDoc(targetUserRef, {
+    followers: arrayUnion(currentUserId)
   });
 }
 
 export async function unfollowUser(db: Firestore, currentUserId: string, targetUserId: string) {
-  const userRef = doc(db, 'users', currentUserId);
-  await updateDoc(userRef, {
+  const currentUserRef = doc(db, 'users', currentUserId);
+  const targetUserRef = doc(db, 'users', targetUserId);
+
+  await updateDoc(currentUserRef, {
     following: arrayRemove(targetUserId)
+  });
+  await updateDoc(targetUserRef, {
+    followers: arrayRemove(currentUserId)
   });
 }
 

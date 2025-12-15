@@ -30,6 +30,13 @@
           "items": {
             "type": "string"
           }
+        },
+        "followers": {
+          "type": "array",
+          "description": "A list of user IDs that are following this user.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

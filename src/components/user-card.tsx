@@ -6,7 +6,7 @@ import { type UserProfile } from '@/firebase/firestore/users';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { UserPlus, UserCheck } from 'lucide-react';
+import { UserPlus, UserCheck, Users } from 'lucide-react';
 
 interface UserCardProps {
   profile: UserProfile;
@@ -65,8 +65,12 @@ export function UserCard({
                 </div>
             </div>
         </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground line-clamp-3">{profile.bio || 'No bio yet.'}</p>
+        <CardContent className="flex-grow space-y-4">
+          <p className="text-sm text-muted-foreground line-clamp-2 h-10">{profile.bio || 'No bio yet.'}</p>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+             <Users className="h-4 w-4" />
+             <span>{profile.followers?.length || 0} Followers</span>
+          </div>
         </CardContent>
         <CardFooter>
             <Button size="sm" variant="outline" onClick={handleFollowClick} className="w-full">
