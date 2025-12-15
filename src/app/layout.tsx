@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { UserProvider } from '@/hooks/use-user';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export const metadata: Metadata = {
   title: 'SereneNote',
@@ -29,6 +30,7 @@ export default function RootLayout({
           {children}
         </UserProvider>
         <Toaster />
+        <FirebaseErrorListener />
       </body>
     </html>
   );
