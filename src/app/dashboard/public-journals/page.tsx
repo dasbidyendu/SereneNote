@@ -1,14 +1,22 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { journalEntries, JournalEntry } from '@/lib/mock-data';
-import { Globe } from 'lucide-react';
+import { JournalEntry, getJournalEntries } from '@/firebase/firestore/journals';
+import { Globe, Loader2 } from 'lucide-react';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { Timestamp } from 'firebase/firestore';
 
 function JournalCard({ entry }: { entry: JournalEntry }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{entry.title}</CardTitle>
-        <CardDescription>{new Date(entry.createdAt).toLocaleDateString()}</CardDescription>
+        <CardDescription>
+          {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'Just now'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground line-clamp-3">{entry.content}</p>
@@ -21,7 +29,22 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
 }
 
 export default function PublicJournalsPage() {
-  const publicEntries = journalEntries.filter(entry => entry.isPublic && entry.author.name === 'Jane Smith');
+  const { user } = useUser();
+  const { firestore } = getFirebaseServices();
+  const [publicEntries, setPublicEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user && firestore) {
+      setLoading(true);
+      getJournalEntries(firestore, user.uid, true)
+        .then(entries => {
+          setPublicEntries(entries);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [user, firestore]);
 
   return (
     <PageShell>
@@ -32,7 +55,11 @@ export default function PublicJournalsPage() {
           <p className="text-muted-foreground">These are your entries visible to the community.</p>
         </div>
       </div>
-      {publicEntries.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      ) : publicEntries.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {publicEntries.map(entry => (
             <JournalCard key={entry.id} entry={entry} />

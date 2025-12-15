@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -22,10 +23,15 @@ import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviati
 import { Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { addJournalEntry } from '@/firebase/firestore/journals';
+import { serverTimestamp } from 'firebase/firestore';
 
 const moods = ['Happy', 'Calm', 'Sad', 'Anxious', 'Excited'] as const;
 
 const formSchema = z.object({
+  title: z.string().min(3, { message: 'Title must be at least 3 characters.' }),
   journalEntry: z.string().min(10, {
     message: 'Journal entry must be at least 10 characters.',
   }),
@@ -38,31 +44,33 @@ type FormValues = z.infer<typeof formSchema>;
 export function JournalForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useUser();
+  const { firestore } = getFirebaseServices();
   const [isLoading, setIsLoading] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      title: '',
       journalEntry: '',
       mood: 'Calm',
       isPublic: false,
     },
   });
 
-  async function onSubmit(values: FormValues) {
-    setIsLoading(true);
+  async function handleAiAnalysis(values: FormValues) {
+    setIsAiLoading(true);
     try {
-      const result = await cbtStressAlleviationSuggestions(values);
+      const result = await cbtStressAlleviationSuggestions({
+        journalEntry: values.journalEntry,
+        mood: values.mood,
+      });
       
       sessionStorage.setItem('cbtAnalysis', JSON.stringify({
         entry: values,
         suggestions: result.suggestions,
       }));
-
-      toast({
-        title: 'Entry Saved',
-        description: 'Your journal entry has been saved. Redirecting to analysis...',
-      });
 
       router.push('/dashboard/cbt-analysis');
       
@@ -71,11 +79,60 @@ export function JournalForm() {
       toast({
         variant: 'destructive',
         title: 'An error occurred.',
-        description: 'Could not get suggestions. Please try again.',
+        description: 'Could not get AI suggestions. Please try again.',
       });
+    } finally {
+      setIsAiLoading(false);
+    }
+  }
+
+  async function onSubmit(values: FormValues, analyzeWithAi: boolean = false) {
+    if (!firestore || !user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+      return;
+    }
+    
+    setIsLoading(true);
+
+    try {
+      await addJournalEntry(firestore, {
+        title: values.title,
+        content: values.journalEntry,
+        mood: values.mood,
+        isPublic: values.isPublic,
+        authorId: user.uid,
+        authorName: user.displayName || 'Anonymous',
+        authorPhotoURL: user.photoURL || '',
+        createdAt: serverTimestamp(),
+      });
+
+      toast({
+        title: 'Entry Saved',
+        description: 'Your journal entry has been successfully saved.',
+      });
+
+      form.reset();
+
+      if (analyzeWithAi) {
+        await handleAiAnalysis(values);
+      } else {
+        // Redirect to the appropriate journal list
+        router.push(values.isPublic ? '/dashboard/public-journals' : '/dashboard/private-journals');
+      }
+
+    } catch (error) {
+      console.error('Failed to save journal entry:', error);
+      toast({
+        variant: 'destructive',
+        title: 'An error occurred.',
+        description: 'Could not save your journal entry. Please try again.',
+      });
+    } finally {
       setIsLoading(false);
     }
   }
+  
+  const isSubmitting = isLoading || isAiLoading;
 
   return (
     <Card>
@@ -84,7 +141,21 @@ export function JournalForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={form.handleSubmit((values) => onSubmit(values))} className="space-y-8">
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="A title for your thoughts" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="journalEntry"
@@ -147,20 +218,27 @@ export function JournalForm() {
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
+                      disabled={isSubmitting}
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
             
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="mr-2 h-4 w-4" />
-              )}
-              Save & Analyze
-            </Button>
+            <div className="flex flex-wrap gap-4">
+              <Button type="submit" disabled={isSubmitting}>
+                {isLoading && !isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save Entry
+              </Button>
+              <Button type="button" onClick={form.handleSubmit((values) => onSubmit(values, true))} disabled={isSubmitting}>
+                {isAiLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="mr-2 h-4 w-4" />
+                )}
+                Save & Analyze
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

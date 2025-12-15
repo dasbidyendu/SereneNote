@@ -24,11 +24,72 @@
           "description": "URL of the user's profile picture."
         }
       },
-      "required": ["name", "email"]
+      "required": [
+        "name",
+        "email"
+      ]
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "Represents a single journal entry made by a user.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the journal entry."
+        },
+        "content": {
+          "type": "string",
+          "description": "The main content of the journal entry."
+        },
+        "mood": {
+          "type": "string",
+          "enum": [
+            "Happy",
+            "Calm",
+            "Sad",
+            "Anxious",
+            "Excited"
+          ],
+          "description": "The user's mood at the time of writing."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether the entry is visible to the community."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The ID of the user who wrote the entry."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "The name of the user who wrote the entry."
+        },
+        "authorPhotoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "The profile picture URL of the author."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The timestamp when the entry was created."
+        }
+      },
+      "required": [
+        "title",
+        "content",
+        "mood",
+        "isPublic",
+        "authorId",
+        "authorName",
+        "createdAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["email"]
+    "providers": [
+      "email"
+    ]
   },
   "firestore": {
     "/users/{userId}": {
@@ -36,6 +97,12 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "Stores user profile information."
+    },
+    "/journalEntries/{journalId}": {
+      "schema": {
+        "$ref": "#/entities/JournalEntry"
+      },
+      "description": "Collection of all journal entries from all users."
     }
   }
 }

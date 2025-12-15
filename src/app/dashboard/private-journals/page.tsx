@@ -1,19 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { journalEntries, JournalEntry } from '@/lib/mock-data';
-import { Lock } from 'lucide-react';
+import { JournalEntry, getJournalEntries } from '@/firebase/firestore/journals';
+import { Lock, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { Timestamp } from 'firebase/firestore';
 
 function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entry: JournalEntry) => void }) {
   return (
     <Card onClick={() => onSelect(entry)} className="cursor-pointer hover:shadow-xl transition-shadow">
       <CardHeader>
         <CardTitle>{entry.title}</CardTitle>
-        <CardDescription>{new Date(entry.createdAt).toLocaleDateString()}</CardDescription>
+        <CardDescription>
+          {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'Just now'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-muted-foreground line-clamp-3">{entry.content}</p>
@@ -26,8 +31,23 @@ function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entr
 }
 
 export default function PrivateJournalsPage() {
-  const privateEntries = journalEntries.filter(entry => !entry.isPublic);
+  const { user } = useUser();
+  const { firestore } = getFirebaseServices();
+  const [privateEntries, setPrivateEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+
+  useEffect(() => {
+    if (user && firestore) {
+      setLoading(true);
+      getJournalEntries(firestore, user.uid, false)
+        .then(entries => {
+          setPrivateEntries(entries);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [user, firestore]);
 
   const handleCloseDialog = () => {
     setSelectedEntry(null);
@@ -42,7 +62,11 @@ export default function PrivateJournalsPage() {
           <p className="text-muted-foreground">Your personal space for reflection. Only visible to you.</p>
         </div>
       </div>
-      {privateEntries.length > 0 ? (
+      {loading ? (
+        <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      ) : privateEntries.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {privateEntries.map(entry => (
             <JournalCard key={entry.id} entry={entry} onSelect={setSelectedEntry} />
@@ -61,7 +85,7 @@ export default function PrivateJournalsPage() {
             <DialogHeader>
               <DialogTitle className="font-headline text-2xl">{selectedEntry.title}</DialogTitle>
               <DialogDescription>
-                {new Date(selectedEntry.createdAt).toLocaleDateString()} | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
+                {selectedEntry.createdAt instanceof Timestamp ? selectedEntry.createdAt.toDate().toLocaleDateString() : 'Just now'} | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
               </DialogDescription>
             </DialogHeader>
             <Separator />
