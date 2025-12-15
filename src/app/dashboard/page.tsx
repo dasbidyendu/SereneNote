@@ -43,7 +43,7 @@ const scoreToMood: Record<MoodScore, Mood> = {
 interface ChartData {
   date: string;
   fullDate: string;
-  mood: MoodScore;
+  mood: MoodScore | 0;
   tooltip: string;
 }
 
@@ -112,7 +112,7 @@ export default function DashboardPage() {
   const handleChartClick = (data: any) => {
     if (data && data.activePayload && data.activePayload.length > 0) {
       const payload = data.activePayload[0].payload;
-      if (payload.fullDate) {
+      if (payload.fullDate && payload.mood > 0) {
         router.push(`/dashboard/daily-mood?date=${payload.fullDate}`);
       }
     }
@@ -135,7 +135,7 @@ export default function DashboardPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] w-full">
+          <div className="w-full aspect-video">
             {loading ? (
               <div className="flex h-full w-full items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
