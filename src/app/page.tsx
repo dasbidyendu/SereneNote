@@ -1,3 +1,4 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -111,7 +112,7 @@ export default function LandingPage() {
               src={heroImage.imageUrl}
               alt={heroImage.description}
               fill
-              className="object-cover object-left"
+              className="object-cover object-center"
               priority
               data-ai-hint={heroImage.imageHint}
             />

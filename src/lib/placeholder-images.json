@@ -3,8 +3,8 @@
     {
       "id": "hero",
       "description": "A calming, abstract pink background image for the hero section.",
-      "imageUrl": "https://images.unsplash.com/photo-1558899623-6a7542b58837?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwaW5rJTIwcGV0YWxzfGVufDB8fHx8MTc2NTk1MTU5MXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "pink petals"
+      "imageUrl": "https://images.unsplash.com/photo-1562690868-c9bbe01c5c29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwaW5rJTIwZmxvd2VyfGVufDB8fHx8MTc2NTk1MTU5MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "pink flower"
     },
     {
       "id": "feature-mood",
