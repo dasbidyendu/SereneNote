@@ -33,7 +33,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="w-full p-8 bg-secondary/30">
+    <footer className="w-full p-8 bg-secondary/50">
       <div className="container mx-auto text-center text-muted-foreground">
         <p>&copy; {new Date().getFullYear()} SereneNote. All rights reserved.</p>
       </div>
@@ -132,7 +132,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
+        <section id="features" className="py-16 md:py-24 bg-secondary/50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Features to Guide You</h2>
@@ -181,7 +181,7 @@ export default function LandingPage() {
         </section>
 
         {/* How We Help Section */}
-        <section id="how-we-help" className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
+        <section id="how-we-help" className="py-16 md:py-24 bg-secondary/50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">How We Help You</h2>
@@ -231,7 +231,7 @@ export default function LandingPage() {
         </section>
 
         {/* Contact Us Section */}
-        <section id="contact" className="py-16 md:py-24 bg-gradient-to-t from-primary/5 to-transparent">
+        <section id="contact" className="py-16 md:py-24 bg-secondary/50">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Get In Touch</h2>
