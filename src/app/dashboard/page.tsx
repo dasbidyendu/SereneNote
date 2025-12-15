@@ -11,7 +11,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { moodChartData } from '@/lib/mock-data';
-import { ChartTooltipContent } from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import type { ChartConfig } from '@/components/ui/chart';
 
 export default function DashboardPage() {
   const chartConfig = {
@@ -19,7 +20,7 @@ export default function DashboardPage() {
       label: 'Mood Score',
       color: 'hsl(var(--primary))',
     },
-  };
+  } satisfies ChartConfig;
 
   return (
     <PageShell>
@@ -39,37 +40,39 @@ export default function DashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={moodChartData}>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                />
-                <YAxis
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  domain={[0, 5]}
-                />
-                <Tooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      formatter={(value, name, item) => (
-                        <div className="flex flex-col">
-                           <span>{item.payload.tooltip}</span>
-                           <span className="text-muted-foreground text-xs">Score: {value}</span>
-                        </div>
-                      )}
-                    />
-                  }
-                />
-                <Bar dataKey="mood" fill="var(--color-mood)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <ChartContainer config={chartConfig}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={moodChartData}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                  />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    domain={[0, 5]}
+                  />
+                  <Tooltip
+                    cursor={false}
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name, item) => (
+                          <div className="flex flex-col">
+                            <span>{item.payload.tooltip}</span>
+                            <span className="text-muted-foreground text-xs">Score: {value}</span>
+                          </div>
+                        )}
+                      />
+                    }
+                  />
+                  <Bar dataKey="mood" fill="var(--color-mood)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </div>
         </CardContent>
       </Card>
