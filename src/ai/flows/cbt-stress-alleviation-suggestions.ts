@@ -37,7 +37,7 @@ export async function cbtStressAlleviationSuggestions(
 
 const prompt = ai.definePrompt({
   name: 'cbtStressAlleviationPrompt',
-  model: 'googleai/gemini-1.5-pro-latest',
+  model: 'googleai/gemini-2.5-flash-preview',
   input: {schema: CbtStressAlleviationInputSchema},
   output: {schema: CbtStressAlleviationOutputSchema},
   prompt: `You are a mental health expert providing Cognitive Behavioral Therapy (CBT) based suggestions for stress alleviation.
