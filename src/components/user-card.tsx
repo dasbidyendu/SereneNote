@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
 import { UserPlus, UserCheck, Users, Quote } from 'lucide-react';
 import Image from 'next/image';
+import { useEffect, useState } from 'react';
 
 interface UserCardProps {
   profile: UserProfile;
@@ -24,6 +25,18 @@ export function UserCard({
   className,
   onSelect
 }: UserCardProps) {
+  const [avatarUrl, setAvatarUrl] = useState(profile.photoURL);
+  const [coverUrl, setCoverUrl] = useState(profile.coverImage);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && profile.id) {
+      const localAvatar = localStorage.getItem(`serene-note-avatar-${profile.id}`);
+      if (localAvatar) setAvatarUrl(localAvatar);
+
+      const localCover = localStorage.getItem(`serene-note-cover-${profile.id}`);
+      if (localCover) setCoverUrl(localCover);
+    }
+  }, [profile.id]);
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '';
@@ -55,12 +68,12 @@ export function UserCard({
         )}
       >
         <div className="relative h-24 bg-muted">
-            {profile.coverImage && (
-                <Image src={profile.coverImage} alt={`${profile.name}'s cover image`} layout="fill" objectFit="cover" />
+            {coverUrl && (
+                <Image src={coverUrl} alt={`${profile.name}'s cover image`} layout="fill" objectFit="cover" />
             )}
             <div className="absolute -bottom-8 left-4">
                  <Avatar className="h-16 w-16 border-4 border-background">
-                  <AvatarImage src={profile.photoURL} data-ai-hint="person portrait" />
+                  <AvatarImage src={avatarUrl} data-ai-hint="person portrait" />
                   <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
                 </Avatar>
             </div>

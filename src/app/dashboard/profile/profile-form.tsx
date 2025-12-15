@@ -16,19 +16,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Loader2, Users, Image as ImageIcon, Music } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useEffect, useRef, useState } from 'react';
 import { getFirebaseServices } from '@/firebase/client';
-import { getUserProfile, setUserProfile, UserProfile } from '@/firebase/firestore/users';
+import { setUserProfile, UserProfile } from '@/firebase/firestore/users';
 import { Separator } from '@/components/ui/separator';
 import { type Auth } from 'firebase/auth';
 import { type Firestore } from 'firebase/firestore';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -39,6 +38,9 @@ const profileSchema = z.object({
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const getAvatarStorageKey = (uid: string) => `serene-note-avatar-${uid}`;
+const getCoverStorageKey = (uid: string) => `serene-note-cover-${uid}`;
 
 export function ProfileForm() {
   const { toast } = useToast();
@@ -59,6 +61,12 @@ export function ProfileForm() {
       const { auth: a, firestore: fs } = getFirebaseServices();
       setAuth(a);
       setFirestore(fs);
+      
+      // Load images from local storage on mount
+      const storedAvatar = localStorage.getItem(getAvatarStorageKey(user.uid));
+      const storedCover = localStorage.getItem(getCoverStorageKey(user.uid));
+      if (storedAvatar) setAvatarPreview(storedAvatar);
+      if (storedCover) setCoverPreview(storedCover);
     }
   }, [user]);
 
@@ -83,10 +91,11 @@ export function ProfileForm() {
         motto: profile.motto || '',
         favoriteSongUrl: profile.favoriteSongUrl || '',
       });
-      setAvatarPreview(profile.photoURL || null);
-      setCoverPreview(profile.coverImage || null);
+      // Prioritize local storage images, then fallback to profile
+      if (!avatarPreview) setAvatarPreview(profile.photoURL || null);
+      if (!coverPreview) setCoverPreview(profile.coverImage || null);
     }
-  }, [user, profile, form]);
+  }, [user, profile, form, avatarPreview, coverPreview]);
   
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '';
@@ -97,21 +106,26 @@ export function ProfileForm() {
     if (!auth?.currentUser || !firestore) return;
     setIsSaving(true);
     
+    // Data to be saved to Firestore (excluding images)
     const updatedProfileData: Partial<UserProfile> = {
       name: data.name,
       email: data.email,
       bio: data.bio,
       motto: data.motto,
       favoriteSongUrl: data.favoriteSongUrl,
-      photoURL: avatarPreview || '',
-      coverImage: coverPreview || '',
     };
     
     try {
       await setUserProfile(firestore, auth.currentUser.uid, updatedProfileData);
       
-      // Update the user context with the new profile data
-      setProfile(prev => ({ ...prev, ...updatedProfileData } as UserProfile));
+      // Update the user context with the new text-based profile data
+      setProfile(prev => ({ 
+          ...prev, 
+          ...updatedProfileData,
+          // Manually update image URLs in context from state
+          photoURL: avatarPreview || '',
+          coverImage: coverPreview || '',
+      } as UserProfile));
       
       toast({
         title: 'Profile Updated',
@@ -130,16 +144,28 @@ export function ProfileForm() {
 
   const handleImageFileChange = (
     event: React.ChangeEvent<HTMLInputElement>,
+    storageKey: string,
     setImagePreview: React.Dispatch<React.SetStateAction<string | null>>
   ) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !user) return;
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
+      try {
+        localStorage.setItem(storageKey, dataUrl);
+        setImagePreview(dataUrl);
+        toast({ title: 'Image updated!', description: 'Your new image has been saved locally.'});
+      } catch (e) {
+        console.error("Error saving image to localStorage", e);
+        toast({
+            variant: "destructive",
+            title: "Image too large",
+            description: "Could not save image. It may be too large for browser storage."
+        })
+      }
     };
   };
 
@@ -176,7 +202,7 @@ export function ProfileForm() {
               <input 
                 type="file" 
                 ref={coverInputRef} 
-                onChange={(e) => handleImageFileChange(e, setCoverPreview)} 
+                onChange={(e) => user && handleImageFileChange(e, getCoverStorageKey(user.uid), setCoverPreview)} 
                 accept="image/*" 
                 className="hidden" 
               />
@@ -193,7 +219,7 @@ export function ProfileForm() {
                         <Camera className="h-6 w-6 text-white" />
                       </div>
                     </Avatar>
-                    <input type="file" ref={avatarInputRef} onChange={(e) => handleImageFileChange(e, setAvatarPreview)} accept="image/*" className="hidden" />
+                    <input type="file" ref={avatarInputRef} onChange={(e) => user && handleImageFileChange(e, getAvatarStorageKey(user.uid), setAvatarPreview)} accept="image/*" className="hidden" />
                   </div>
                    <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left pt-14 sm:pt-0">
                     <div className="flex flex-col items-center">

@@ -54,6 +54,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, profile } = useUser();
   const { toast } = useToast();
+  const [avatarUrl, setAvatarUrl] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+      if (user) {
+        // We need to re-check local storage here because the profile in useUser might be stale
+        // if the image was changed on the profile page without a full reload.
+        const localAvatar = localStorage.getItem(`serene-note-avatar-${user.uid}`);
+        setAvatarUrl(localAvatar || profile?.photoURL || null);
+      }
+  }, [user, profile, pathname]); // Rerun on pathname change to catch navigation from profile page
 
   const handleLogout = async () => {
     const { auth } = getFirebaseServices();
@@ -108,7 +118,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
              onClick={() => router.push('/dashboard/profile')}
            >
             <Avatar>
-              <AvatarImage src={profile?.photoURL || ''} data-ai-hint="person portrait" />
+              <AvatarImage src={avatarUrl || ''} data-ai-hint="person portrait" />
               <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">

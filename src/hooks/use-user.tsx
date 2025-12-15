@@ -7,7 +7,6 @@ import { getFirebaseServices } from '@/firebase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getUserProfile, UserProfile } from '@/firebase/firestore/users';
-import type { Firestore } from 'firebase/firestore';
 
 export interface UserContextType {
   user: User | null;
@@ -24,6 +23,9 @@ interface UserProviderProps {
 }
 
 const publicPaths = ['/login', '/signup', '/'];
+
+const getAvatarStorageKey = (uid: string) => `serene-note-avatar-${uid}`;
+const getCoverStorageKey = (uid: string) => `serene-note-cover-${uid}`;
 
 export function UserProvider({ children }: UserProviderProps) {
   const { auth, firestore } = getFirebaseServices();
@@ -47,7 +49,19 @@ export function UserProvider({ children }: UserProviderProps) {
       if (authUser && firestore) {
         try {
           const userProfile = await getUserProfile(firestore, authUser.uid);
-          setProfile(userProfile);
+          
+          // Load images from localStorage and merge with Firestore profile
+          const localAvatar = localStorage.getItem(getAvatarStorageKey(authUser.uid));
+          const localCover = localStorage.getItem(getCoverStorageKey(authUser.uid));
+
+          const mergedProfile = {
+            ...userProfile,
+            photoURL: localAvatar || userProfile?.photoURL,
+            coverImage: localCover || userProfile?.coverImage,
+          };
+          
+          setProfile(mergedProfile as UserProfile);
+
         } catch (error) {
           console.error("Failed to fetch user profile:", error);
           setProfile(null);
