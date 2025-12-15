@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { PageShell } from '@/components/page-shell';
 import {
   getPublicJournalEntries,
+  getJournalEntries,
   JournalEntry,
   updateJournalEntry,
 } from '@/firebase/firestore/journals';
@@ -49,6 +50,11 @@ export default function CommunityPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+
+  // State for viewing a user's journals
+  const [viewingUser, setViewingUser] = useState<UserProfile | null>(null);
+  const [viewingUserEntries, setViewingUserEntries] = useState<JournalEntry[]>([]);
+  const [loadingUserEntries, setLoadingUserEntries] = useState(false);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -192,6 +198,25 @@ export default function CommunityPage() {
     }
   };
   
+  const handleViewUserEntries = async (profile: UserProfile) => {
+    if (!firestore || !profile.id) return;
+    setViewingUser(profile);
+    setLoadingUserEntries(true);
+    try {
+      const entries = await getJournalEntries(firestore, profile.id, true);
+      setViewingUserEntries(entries);
+    } catch (error) {
+      console.error("Failed to fetch user's public journals", error);
+      toast({
+        variant: "destructive",
+        title: "Could not load journals",
+        description: "There was an issue fetching this user's journals."
+      });
+    } finally {
+      setLoadingUserEntries(false);
+    }
+  };
+
   const isFollowing = (authorId: string) => userProfile?.following?.includes(authorId);
 
   const showSearchResults = isSearchFocused && searchTerm.length > 0;
@@ -341,6 +366,7 @@ export default function CommunityPage() {
                         profile={profile}
                         isFollowing={isFollowing(profile.id!)}
                         onFollowToggle={() => handleFollowToggle(profile.id!)}
+                        onSelect={() => handleViewUserEntries(profile)}
                       />
                   ))}
                 </div>
@@ -354,6 +380,7 @@ export default function CommunityPage() {
         </Tabs>
       </div>
 
+      {/* Dialog for a single journal entry */}
       <Dialog open={!!selectedEntry} onOpenChange={isOpen => !isOpen && handleCloseDialog()}>
         {selectedEntry && (
           <DialogContent className="sm:max-w-2xl">
@@ -398,8 +425,45 @@ export default function CommunityPage() {
           </DialogContent>
         )}
       </Dialog>
+      
+      {/* Dialog for a user's journal entries */}
+      <Dialog open={!!viewingUser} onOpenChange={isOpen => !isOpen && setViewingUser(null)}>
+        {viewingUser && (
+          <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">Public Journals by {viewingUser.name}</DialogTitle>
+              <DialogDescription>
+                Explore all public entries shared by this user.
+              </DialogDescription>
+            </DialogHeader>
+            <Separator />
+            <div className="max-h-[70vh] -mx-6 px-6">
+              <ScrollArea className="h-full pr-2">
+                {loadingUserEntries ? (
+                   <div className="flex justify-center items-center h-64">
+                     <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                   </div>
+                ) : viewingUserEntries.length > 0 ? (
+                    <div className="grid gap-6 md:grid-cols-2 p-1 py-4">
+                        {viewingUserEntries.map(entry => (
+                          <JournalCard
+                            key={entry.id}
+                            entry={entry}
+                            onSelect={handleSelectEntry}
+                          />
+                        ))}
+                    </div>
+                ) : (
+                   <div className="flex flex-col items-center justify-center text-center p-8 h-64">
+                     <p className="text-lg font-medium text-muted-foreground">No public journals found.</p>
+                     <p className="text-sm text-muted-foreground">{viewingUser.name} hasn't shared any entries yet.</p>
+                   </div>
+                )}
+              </ScrollArea>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageShell>
   );
 }
-
-    

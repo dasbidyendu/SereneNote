@@ -13,13 +13,15 @@ interface UserCardProps {
   isFollowing?: boolean;
   onFollowToggle: () => void;
   className?: string;
+  onSelect?: (profile: UserProfile) => void;
 }
 
 export function UserCard({ 
   profile,
   isFollowing,
   onFollowToggle, 
-  className, 
+  className,
+  onSelect
 }: UserCardProps) {
 
   const getInitials = (name: string | null | undefined) => {
@@ -32,11 +34,18 @@ export function UserCard({
     onFollowToggle();
   };
 
+  const handleCardClick = () => {
+    if (onSelect) {
+      onSelect(profile);
+    }
+  }
+
   return (
     <motion.div
         whileHover={{ y: -5 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        className="h-full"
+        className={cn("h-full", onSelect && "cursor-pointer")}
+        onClick={handleCardClick}
     >
       <Card 
         className={cn(
