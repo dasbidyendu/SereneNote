@@ -20,14 +20,17 @@ service cloud.firestore {
     
     // JournalEntries collection
     match /journalEntries/{journalId} {
-      // Any authenticated user can create a journal entry
-      allow create: if isSignedIn();
+      // Any authenticated user can create a journal entry.
+      // The user must be the author of the document.
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       
       // Only the author can read, update, or delete their own entries
-      allow read, update, delete: if isOwner(resource.data.authorId);
-      
-      // Allow any signed-in user to read public journal entries
-      allow list: if isSignedIn() && resource.data.isPublic == true;
+      allow read, update, delete: if isSignedIn() && isOwner(resource.data.authorId);
+    }
+
+    // Allow signed-in users to list public journal entries
+    match /journalEntries/{journalId} {
+        allow list: if isSignedIn() && resource.data.isPublic == true;
     }
   }
 }
