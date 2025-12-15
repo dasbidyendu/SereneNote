@@ -35,7 +35,6 @@ import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { AudioPlayer } from '@/components/audio-player';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -68,12 +67,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleLogout = async () => {
     const { auth } = getFirebaseServices();
     try {
-      await signOut(auth);
-      toast({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-      });
-      router.push('/login');
+      if (auth) {
+        await signOut(auth);
+        toast({
+          title: 'Logged Out',
+          description: 'You have been successfully logged out.',
+        });
+        router.push('/login');
+      }
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -111,7 +112,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           {profile?.favoriteSongUrl && <AudioPlayer url={profile.favoriteSongUrl} />}
            <Separator className="my-2 bg-sidebar-border" />
            <div 
              className="flex items-center gap-3 w-full p-2 rounded-md cursor-pointer hover:bg-sidebar-accent"

@@ -19,11 +19,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Users, Image as ImageIcon, Music } from 'lucide-react';
+import { Camera, Loader2, Users, Image as ImageIcon } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useEffect, useRef, useState } from 'react';
 import { getFirebaseServices } from '@/firebase/client';
-import { setUserProfile, UserProfile } from '@/firebase/firestore/users';
+import { setUserProfile, UserProfile, getUserProfile } from '@/firebase/firestore/users';
 import { Separator } from '@/components/ui/separator';
 import { type Auth } from 'firebase/auth';
 import { type Firestore } from 'firebase/firestore';
@@ -34,7 +34,6 @@ const profileSchema = z.object({
   email: z.string().email(),
   bio: z.string().max(160).optional(),
   motto: z.string().max(50).optional(),
-  favoriteSongUrl: z.string().url({ message: 'Please enter a valid YouTube URL.' }).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -59,8 +58,10 @@ export function ProfileForm() {
   useEffect(() => {
     if (user) {
       const { auth: a, firestore: fs } = getFirebaseServices();
-      setAuth(a);
-      setFirestore(fs);
+      if(a && fs) {
+        setAuth(a);
+        setFirestore(fs);
+      }
       
       // Load images from local storage on mount
       const storedAvatar = localStorage.getItem(getAvatarStorageKey(user.uid));
@@ -77,7 +78,6 @@ export function ProfileForm() {
       email: '',
       bio: '',
       motto: '',
-      favoriteSongUrl: '',
     },
     mode: 'onChange',
   });
@@ -89,7 +89,6 @@ export function ProfileForm() {
         email: user.email || '',
         bio: profile.bio || '',
         motto: profile.motto || '',
-        favoriteSongUrl: profile.favoriteSongUrl || '',
       });
       // Prioritize local storage images, then fallback to profile
       if (!avatarPreview) setAvatarPreview(profile.photoURL || null);
@@ -105,30 +104,32 @@ export function ProfileForm() {
   async function onSubmit(data: ProfileFormValues) {
     if (!auth?.currentUser || !firestore) return;
     setIsSaving(true);
-    
-    const existingProfile = await getUserProfile(firestore, auth.currentUser.uid);
 
-    const updatedProfileData: Partial<UserProfile> = {
-      name: data.name,
-      email: data.email,
-      bio: data.bio,
-      motto: data.motto,
-      favoriteSongUrl: data.favoriteSongUrl,
-      // Preserve existing followers/following
-      followers: existingProfile?.followers || [],
-      following: existingProfile?.following || [],
-    };
-    
     try {
+      // Fetch the existing profile to preserve followers/following
+      const existingProfile = await getUserProfile(firestore, auth.currentUser.uid);
+
+      const updatedProfileData: Partial<UserProfile> = {
+        name: data.name,
+        email: data.email,
+        bio: data.bio,
+        motto: data.motto,
+        // Preserve existing social graph
+        followers: existingProfile?.followers || [],
+        following: existingProfile?.following || [],
+      };
+      
+      // The image URLs are now saved to localStorage, but we also save them to Firestore
+      // so they can be seen by other users.
+      if (avatarPreview) updatedProfileData.photoURL = avatarPreview;
+      if (coverPreview) updatedProfileData.coverImage = coverPreview;
+      
       await setUserProfile(firestore, auth.currentUser.uid, updatedProfileData);
       
-      // Update the user context with the new text-based profile data
+      // Update the user context with the new profile data
       setProfile(prev => ({ 
           ...prev, 
           ...updatedProfileData,
-          // Manually update image URLs in context from state
-          photoURL: avatarPreview || '',
-          coverImage: coverPreview || '',
       } as UserProfile));
       
       toast({
@@ -146,33 +147,36 @@ export function ProfileForm() {
     }
   }
 
-  const handleImageFileChange = (
+ const handleImageFileChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
-    storageKey: string,
-    setImagePreview: React.Dispatch<React.SetStateAction<string | null>>
+    imageType: 'avatar' | 'cover'
   ) => {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    if (!file || !user || !firestore) return;
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => {
+    reader.onload = async () => {
       const dataUrl = reader.result as string;
       try {
+        const storageKey = imageType === 'avatar' ? getAvatarStorageKey(user.uid) : getCoverStorageKey(user.uid);
         localStorage.setItem(storageKey, dataUrl);
-        setImagePreview(dataUrl);
-        toast({ title: 'Image updated!', description: 'Your new image has been saved locally and will be saved to your profile on your next save.'});
+        if(imageType === 'avatar') {
+            setAvatarPreview(dataUrl);
+        } else {
+            setCoverPreview(dataUrl);
+        }
+        
+        toast({ title: 'Image Updated!', description: 'Your new image has been set.'});
 
-        // Also save this to firestore immediately
-         if (firestore && user) {
-            const dataToUpdate: Partial<UserProfile> = {};
-            if (storageKey.includes('avatar')) {
-                dataToUpdate.photoURL = dataUrl;
-            } else if (storageKey.includes('cover')) {
-                dataToUpdate.coverImage = dataUrl;
-            }
-            setUserProfile(firestore, user.uid, dataToUpdate);
-         }
+        // Also save this to Firestore immediately
+        const dataToUpdate: Partial<UserProfile> = {};
+        if (imageType === 'avatar') {
+            dataToUpdate.photoURL = dataUrl;
+        } else {
+            dataToUpdate.coverImage = dataUrl;
+        }
+        await setUserProfile(firestore, user.uid, dataToUpdate);
 
       } catch (e) {
         console.error("Error saving image to localStorage", e);
@@ -185,7 +189,7 @@ export function ProfileForm() {
     };
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return <Card><CardContent className="p-6 flex items-center justify-center h-96"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></CardContent></Card>
   }
 
@@ -200,8 +204,8 @@ export function ProfileForm() {
                 <Image
                   src={coverPreview}
                   alt="Cover image"
-                  layout="fill"
-                  objectFit="cover"
+                  fill
+                  style={{objectFit: 'cover'}}
                   className="rounded-t-lg"
                 />
               )}
@@ -218,34 +222,32 @@ export function ProfileForm() {
               <input 
                 type="file" 
                 ref={coverInputRef} 
-                onChange={(e) => user && handleImageFileChange(e, getCoverStorageKey(user.uid), setCoverPreview)} 
+                onChange={(e) => handleImageFileChange(e, 'cover')} 
                 accept="image/*" 
                 className="hidden" 
               />
             </div>
             
             {/* Avatar and Stats Section */}
-            <div className="relative px-6">
-                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
-                  <div className="relative -mt-16 sm:-mt-12">
-                    <Avatar className="h-28 w-28 border-4 border-background cursor-pointer group/avatar" onClick={() => avatarInputRef.current?.click()}>
-                      <AvatarImage src={avatarPreview || ''} data-ai-hint="person portrait" />
-                      <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity rounded-full">
-                        <Camera className="h-6 w-6 text-white" />
-                      </div>
-                    </Avatar>
-                    <input type="file" ref={avatarInputRef} onChange={(e) => user && handleImageFileChange(e, getAvatarStorageKey(user.uid), setAvatarPreview)} accept="image/*" className="hidden" />
+            <div className="relative px-6 flex items-end -mt-12">
+                <div className="relative">
+                  <Avatar className="h-28 w-28 border-4 border-background cursor-pointer group/avatar" onClick={() => avatarInputRef.current?.click()}>
+                    <AvatarImage src={avatarPreview || ''} data-ai-hint="person portrait" />
+                    <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity rounded-full">
+                      <Camera className="h-6 w-6 text-white" />
+                    </div>
+                  </Avatar>
+                  <input type="file" ref={avatarInputRef} onChange={(e) => handleImageFileChange(e, 'avatar')} accept="image/*" className="hidden" />
+                </div>
+                 <div className="flex-1 flex justify-start gap-6 text-center sm:text-left pb-1 ml-4">
+                  <div className="flex flex-col items-center">
+                     <span className="text-2xl font-bold">{profile?.followers?.length || 0}</span>
+                     <span className="text-sm text-muted-foreground">Followers</span>
                   </div>
-                   <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left pb-1">
-                    <div className="flex flex-col items-center">
-                       <span className="text-2xl font-bold">{profile?.followers?.length || 0}</span>
-                       <span className="text-sm text-muted-foreground">Followers</span>
-                    </div>
-                     <div className="flex flex-col items-center">
-                       <span className="text-2xl font-bold">{profile?.following?.length || 0}</span>
-                       <span className="text-sm text-muted-foreground">Following</span>
-                    </div>
+                   <div className="flex flex-col items-center">
+                     <span className="text-2xl font-bold">{profile?.following?.length || 0}</span>
+                     <span className="text-sm text-muted-foreground">Following</span>
                   </div>
                 </div>
             </div>
@@ -317,25 +319,6 @@ export function ProfileForm() {
                     </FormItem>
                   )}
                 />
-                
-                 <FormField
-                  control={form.control}
-                  name="favoriteSongUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="flex items-center gap-2">
-                        <Music className="h-4 w-4"/>
-                        Favorite Song
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />
-                      </FormControl>
-                       <FormDescription>Paste a YouTube URL to add a song to your personal player.</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
 
                 <Button type="submit" disabled={isSaving}>
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -31,11 +31,6 @@
             "type": "string",
             "description": "A short motto or quote for the user's profile."
         },
-        "favoriteSongUrl": {
-            "type": "string",
-            "format": "uri",
-            "description": "URL of the user's favorite YouTube song."
-        },
         "following": {
           "type": "array",
           "description": "A list of user IDs that this user is following.",
