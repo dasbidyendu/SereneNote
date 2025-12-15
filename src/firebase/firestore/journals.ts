@@ -117,13 +117,19 @@ export async function getPublicJournalEntries(db: Firestore): Promise<JournalEnt
   const entries: JournalEntry[] = [];
   const q = query(
     collection(db, 'journalEntries'),
-    where('isPublic', '==', true),
-    orderBy('createdAt', 'desc')
+    where('isPublic', '==', true)
   );
 
   const querySnapshot = await getDocs(q);
   querySnapshot.forEach((doc) => {
     entries.push({ id: doc.id, ...doc.data() } as JournalEntry);
+  });
+
+  // Sort entries by date on the client side (descending)
+  entries.sort((a, b) => {
+    const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+    const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+    return dateB - dateA;
   });
 
   return entries;
