@@ -25,6 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { updateProfile } from 'firebase/auth';
 import { getFirebaseServices } from '@/firebase/client';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
+import { getUserProfile, setUserProfile } from '@/firebase/firestore/users';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -37,7 +38,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export function ProfileForm() {
   const { toast } = useToast();
   const { user, loading } = useUser();
-  const { auth } = getFirebaseServices();
+  const { auth, firestore } = getFirebaseServices();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -53,14 +54,19 @@ export function ProfileForm() {
   });
 
   useEffect(() => {
-    if (user) {
+    if (user && firestore) {
       form.reset({
         name: user.displayName || '',
         email: user.email || '',
-        bio: '', // Bio is not stored in firebase auth user object by default
+      });
+
+      getUserProfile(firestore, user.uid).then(profile => {
+        if (profile) {
+          form.setValue('bio', profile.bio || '');
+        }
       });
     }
-  }, [user, form]);
+  }, [user, firestore, form]);
   
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '';
@@ -68,14 +74,22 @@ export function ProfileForm() {
   }
 
   async function onSubmit(data: ProfileFormValues) {
-    if (!auth.currentUser) return;
+    if (!auth?.currentUser || !firestore) return;
     setIsSaving(true);
     try {
-      await updateProfile(auth.currentUser, {
-        displayName: data.name,
+      // Update Firebase Auth display name
+      if (auth.currentUser.displayName !== data.name) {
+        await updateProfile(auth.currentUser, {
+          displayName: data.name,
+        });
+      }
+      
+      // Update Firestore profile document
+      await setUserProfile(firestore, auth.currentUser.uid, {
+        name: data.name,
+        email: data.email, // email is read-only on form, but good to store
+        bio: data.bio,
       });
-
-      // NOTE: Bio would be saved to a Firestore document, not implemented here.
       
       toast({
         title: 'Profile Updated',

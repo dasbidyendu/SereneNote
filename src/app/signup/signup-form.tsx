@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { getFirebaseServices } from '@/firebase/client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { setUserProfile } from '@/firebase/firestore/users';
 
 export function SignupForm() {
   const router = useRouter();
@@ -26,8 +27,8 @@ export function SignupForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    const { auth } = getFirebaseServices();
-    if (!auth) {
+    const { auth, firestore } = getFirebaseServices();
+    if (!auth || !firestore) {
         setIsLoading(false);
         toast({
             variant: "destructive",
@@ -39,10 +40,19 @@ export function SignupForm() {
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
+      const user = userCredential.user;
+
+      if (user) {
+        // Update auth profile
+        await updateProfile(user, {
           displayName: name,
+        });
+
+        // Create user profile in Firestore
+        await setUserProfile(firestore, user.uid, {
+          name,
+          email,
+          bio: '',
         });
       }
 
