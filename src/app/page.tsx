@@ -105,35 +105,37 @@ export default function LandingPage() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[60vh] md:h-[80vh] flex items-center justify-center text-center text-white">
+        <section className="relative h-[80vh] md:h-[90vh] flex items-center justify-center text-center text-white">
           {heroImage && (
             <Image
               src={heroImage.imageUrl}
               alt={heroImage.description}
               fill
-              className="object-cover"
+              className="object-cover object-left"
               priority
               data-ai-hint={heroImage.imageHint}
             />
           )}
-          <div className="absolute inset-0 bg-black/30" />
-          <div className="relative z-10 p-4">
-            <h1 className="text-4xl md:text-6xl font-bold font-headline mb-4 text-shadow-lg">
-              Find Your Inner Peace
-            </h1>
-            <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 text-shadow">
-              A sanctuary for your thoughts. Track your mood, reflect on your day, and find calm with SereneNote.
-            </p>
-            <Button size="lg" asChild>
-              <Link href="/login">
-                Start Your Journey <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
+          <div className="relative z-10 p-4 max-w-7xl mx-auto flex justify-start">
+             <div className="text-left">
+                <h1 className="text-4xl md:text-7xl font-bold font-headline mb-4 text-shadow-lg">
+                  Find Your Inner Peace
+                </h1>
+                <p className="text-lg md:text-xl max-w-xl mb-8 text-shadow">
+                  A sanctuary for your thoughts. Track your mood, reflect on your day, and find calm with SereneNote.
+                </p>
+                <Button size="lg" asChild>
+                  <Link href="/login">
+                    Start Your Journey <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
+             </div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-16 md:py-24 bg-secondary/30">
+        <section id="features" className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Features to Guide You</h2>
@@ -143,7 +145,7 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="overflow-hidden bg-card/80 backdrop-blur-sm">
+                <Card key={index} className="overflow-hidden bg-card/60 backdrop-blur-sm border-primary/20">
                   {feature.image && (
                      <Image
                       src={feature.image.imageUrl}
@@ -182,7 +184,7 @@ export default function LandingPage() {
         </section>
 
         {/* How We Help Section */}
-        <section id="how-we-help" className="py-16 md:py-24 bg-secondary/30">
+        <section id="how-we-help" className="py-16 md:py-24 bg-gradient-to-b from-primary/5 to-transparent">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">How We Help You</h2>
@@ -192,7 +194,7 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {helpItems.map((item, index) => (
-                <Card key={index} className="text-center p-6 bg-card/80 backdrop-blur-sm">
+                <Card key={index} className="text-center p-6 bg-card/60 backdrop-blur-sm border-primary/20">
                   <div className="flex justify-center mb-4">
                     <div className="bg-primary/20 p-4 rounded-full">{item.icon}</div>
                   </div>
@@ -215,7 +217,7 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {ratings.map((rating, index) => (
-                <Card key={index} className="p-6 bg-card/80 backdrop-blur-sm">
+                <Card key={index} className="p-6 bg-card/60 backdrop-blur-sm border-primary/20">
                    <CardContent className="p-0">
                     <div className="flex items-center mb-2">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -232,7 +234,7 @@ export default function LandingPage() {
         </section>
 
         {/* Contact Us Section */}
-        <section id="contact" className="py-16 md:py-24 bg-secondary/30">
+        <section id="contact" className="py-16 md:py-24 bg-gradient-to-t from-primary/5 to-transparent">
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Get In Touch</h2>
@@ -240,7 +242,7 @@ export default function LandingPage() {
                 Have questions or feedback? We'd love to hear from you.
               </p>
             </div>
-            <Card className="max-w-xl mx-auto p-6 bg-card/80 backdrop-blur-sm">
+            <Card className="max-w-xl mx-auto p-6 bg-card/60 backdrop-blur-sm border-primary/20">
               <CardContent className="p-0">
                 <form className="space-y-4">
                   <Input type="text" placeholder="Your Name" />
