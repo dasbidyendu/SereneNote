@@ -1,14 +1,18 @@
+
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, startOfMonth, getDay, eachDayOfInterval, isToday, parseISO } from 'date-fns';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { journalEntries } from '@/lib/mock-data';
-import { CalendarDays, Heart, BookText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
+import { CalendarDays, Heart, BookText, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { Timestamp } from 'firebase/firestore';
 
 type Mood = 'Happy' | 'Calm' | 'Sad' | 'Anxious' | 'Excited';
 
@@ -20,11 +24,13 @@ const moodEmojis: Record<Mood, string> = {
     Excited: '🎉',
 };
 
-const entryMap = new Map(journalEntries.map(entry => [format(new Date(entry.createdAt), 'yyyy-MM-dd'), entry]));
-
 export default function DailyMoodPage() {
   const searchParams = useSearchParams();
+  const { user } = useUser();
+  const { firestore } = getFirebaseServices();
   const dateParam = searchParams.get('date');
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const getInitialDate = () => {
     if (dateParam) {
@@ -38,6 +44,29 @@ export default function DailyMoodPage() {
   
   const [currentDate, setCurrentDate] = useState(getInitialDate());
   const [selectedDate, setSelectedDate] = useState<Date | null>(getInitialDate());
+
+  useEffect(() => {
+    if (user && firestore) {
+      setLoading(true);
+      getAllUserJournalEntries(firestore, user.uid)
+        .then(fetchedEntries => {
+          setEntries(fetchedEntries);
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [user, firestore]);
+
+  const entryMap = useMemo(() => {
+    const map = new Map<string, JournalEntry>();
+    entries.forEach(entry => {
+      if (entry.createdAt instanceof Timestamp) {
+        map.set(format(entry.createdAt.toDate(), 'yyyy-MM-dd'), entry);
+      }
+    });
+    return map;
+  }, [entries]);
+
 
   useEffect(() => {
     const newDate = getInitialDate();
@@ -79,7 +108,7 @@ export default function DailyMoodPage() {
       
       <div className="grid md:grid-cols-3 gap-8 items-start">
         <div className="md:col-span-2">
-            <Card className="bg-primary/10 border-primary/20">
+            <Card className="glass">
               <CardHeader className="p-4">
                   <div className="flex items-center justify-between">
                      <Button variant="ghost" size="icon" onClick={handlePrevMonth}>
@@ -94,48 +123,54 @@ export default function DailyMoodPage() {
                   </div>
               </CardHeader>
               <CardContent className="p-0">
-                  <div className="grid grid-cols-7 text-center font-bold text-primary-foreground/80 border-t border-primary/20">
+                  <div className="grid grid-cols-7 text-center font-bold text-primary-foreground/80 border-t border-primary/20 bg-primary/10">
                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                         <div key={day} className="py-2 border-b border-r border-primary/20 last:border-r-0">{day}</div>
                      ))}
                   </div>
-                  <div className="grid grid-cols-7 h-[400px]">
-                    {Array.from({ length: startingDayIndex }).map((_, index) => (
-                      <div key={`empty-${index}`} className="border-b border-r border-primary/20" />
-                    ))}
-                    {daysInMonth.map(day => {
-                       const dayString = format(day, 'yyyy-MM-dd');
-                       const entry = entryMap.get(dayString);
-                       const isSelected = selectedDate ? format(selectedDate, 'yyyy-MM-dd') === dayString : false;
-                      return (
-                        <div 
-                          key={day.toString()}
-                          onClick={() => setSelectedDate(day)}
-                          className={cn(
-                            "border-b border-r border-primary/20 p-2 text-sm flex flex-col justify-between cursor-pointer transition-colors hover:bg-primary/20",
-                            isSelected ? "bg-primary/30 ring-2 ring-primary" : "",
-                            (getDay(day) === 6) && "border-r-0"
-                          )}
-                        >
-                            <span className={cn("self-start", isToday(day) && "bg-primary/80 text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center")}>
-                              {format(day, 'd')}
-                            </span>
-                            <div className="self-end text-2xl">
-                              {entry ? (
-                                  moodEmojis[entry.mood]
-                              ) : (
-                                <Heart className="h-6 w-6 text-primary/30" />
-                              )}
-                            </div>
-                        </div>
-                      )
-                    })}
-                  </div>
+                  {loading ? (
+                     <div className="h-[400px] flex items-center justify-center">
+                        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                     </div>
+                  ) : (
+                    <div className="grid grid-cols-7 h-[400px]">
+                      {Array.from({ length: startingDayIndex }).map((_, index) => (
+                        <div key={`empty-${index}`} className="border-b border-r border-primary/20" />
+                      ))}
+                      {daysInMonth.map(day => {
+                         const dayString = format(day, 'yyyy-MM-dd');
+                         const entry = entryMap.get(dayString);
+                         const isSelected = selectedDate ? format(selectedDate, 'yyyy-MM-dd') === dayString : false;
+                        return (
+                          <div 
+                            key={day.toString()}
+                            onClick={() => setSelectedDate(day)}
+                            className={cn(
+                              "border-b border-r border-primary/20 p-2 text-sm flex flex-col justify-between cursor-pointer transition-colors hover:bg-primary/20",
+                              isSelected ? "bg-primary/30 ring-2 ring-primary" : "",
+                              (getDay(day) === 6) && "border-r-0"
+                            )}
+                          >
+                              <span className={cn("self-start", isToday(day) && "bg-primary/80 text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center")}>
+                                {format(day, 'd')}
+                              </span>
+                              <div className="self-end text-2xl">
+                                {entry ? (
+                                    moodEmojis[entry.mood]
+                                ) : (
+                                  <Heart className="h-6 w-6 text-primary/30" />
+                                )}
+                              </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
               </CardContent>
             </Card>
         </div>
         
-        <Card className="md:col-span-1">
+        <Card className="md:col-span-1 glass">
             {selectedDate ? (
                 entryForSelectedDay ? (
                     <>
