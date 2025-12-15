@@ -14,7 +14,7 @@ service cloud.firestore {
 
     // Users collection
     match /users/{userId} {
-      // Users can only read and write their own profile
+      // Users can only read, create, and update their own profile.
       allow read, write: if isOwner(userId);
     }
     
@@ -23,14 +23,17 @@ service cloud.firestore {
       // Any authenticated user can create a journal entry, as long as they are the author.
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
       
-      // Only the author can read, update, or delete their own entries.
-      // Anyone can read public entries.
-      allow read: if isSignedIn() && (isOwner(resource.data.authorId) || resource.data.isPublic == true);
-      allow update, delete: if isSignedIn() && isOwner(resource.data.authorId);
+      // Public entries can be read by any signed-in user.
+      // Private entries can only be read by their owner.
+      allow read: if isSignedIn() && (resource.data.isPublic == true || isOwner(resource.data.authorId));
 
-      // Allow signed-in users to list (query) public journal entries.
-      // This rule is for collections.
-      allow list: if isSignedIn();
+      // Only the author can update or delete their own entries.
+      allow update, delete: if isSignedIn() && isOwner(resource.data.authorId);
+    }
+
+    // This rule is necessary to allow collection-level queries, like fetching all public journals.
+    match /journalEntries/{document=**} {
+        allow list: if isSignedIn();
     }
   }
 }
