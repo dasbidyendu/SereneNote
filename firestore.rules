@@ -16,10 +16,9 @@ service cloud.firestore {
     // Users collection
     match /users/{userId} {
       allow read, list: if isSignedIn();
-      allow create: if isOwner(userId);
-      // Simplified update rule to allow following/unfollowing.
-      // Any signed-in user can update a user document.
-      allow update: if isSignedIn(); 
+      // Allow any signed-in user to update a user document.
+      // This is simplified for the follow/unfollow feature.
+      allow update, create: if isSignedIn(); 
       allow delete: if isOwner(userId);
     }
     
@@ -40,6 +39,18 @@ service cloud.firestore {
     // This rule is necessary to allow collection-level queries, like fetching all public journals.
     match /journalEntries/{document=**} {
         allow list: if isSignedIn();
+    }
+
+    // Channels collection
+    match /channels/{channelId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+    }
+
+    // Messages sub-collection
+    match /channels/{channelId}/messages/{messageId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
     }
   }
 }

@@ -25,6 +25,7 @@ import {
   CalendarDays,
   LogOut,
   BrainCircuit,
+  MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePathname, useRouter } from 'next/navigation';
@@ -41,6 +42,7 @@ const navItems = [
   { href: '/dashboard/new-entry', icon: PlusSquare, label: 'New Entry' },
   { href: '/dashboard/cbt-analysis', icon: BrainCircuit, label: 'CBT Toolkit' },
   { href: '/dashboard/daily-mood', icon: CalendarDays, label: 'Daily Mood' },
+  { href: '/dashboard/chat', icon: MessageSquare, label: 'Community Chat' },
   { href: '/dashboard/private-journals', icon: Lock, label: 'Private Journals' },
   { href: '/dashboard/public-journals', icon: Globe, label: 'Public Journals' },
   { href: '/dashboard/community', icon: Users, label: 'Community' },
