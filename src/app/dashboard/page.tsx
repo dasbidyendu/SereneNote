@@ -1,3 +1,4 @@
+
 'use client';
 import { useRouter } from 'next/navigation';
 import { PageShell } from '@/components/page-shell';
@@ -14,7 +15,7 @@ import {
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 import { useUser } from '@/hooks/use-user';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { getFirebaseServices } from '@/firebase/client';
 import { subDays, format, isAfter } from 'date-fns';
@@ -65,7 +66,23 @@ export default function DashboardPage() {
   const [todos, setTodos] = useState<TodoItem[]>([]);
   const [loadingTodos, setLoadingTodos] = useState(true);
 
-  const getTodayStorageKey = () => `wellness-todos-${format(new Date(), 'yyyy-MM-dd')}`;
+  const getTodayStorageKey = useCallback(() => `wellness-todos-${format(new Date(), 'yyyy-MM-dd')}`, []);
+
+  const fetchAndSetTodos = useCallback(async (moods: string[]) => {
+    setLoadingTodos(true);
+    try {
+      const result = await getWellnessTodos({ moods });
+      const newTodos = result.todos.map((todo, index) => ({ id: index, text: todo, completed: false }));
+      setTodos(newTodos);
+      localStorage.setItem(getTodayStorageKey(), JSON.stringify(newTodos));
+    } catch (error) {
+      console.error('Failed to get wellness todos:', error);
+      setTodos([{ id: 0, text: 'Could not load tasks at this time.', completed: false }]);
+    } finally {
+      setLoadingTodos(false);
+    }
+  }, [getTodayStorageKey]);
+
 
   // This effect runs once on mount to handle todo persistence
   useEffect(() => {
@@ -95,19 +112,8 @@ export default function DashboardPage() {
           const storedTodos = localStorage.getItem(todayStorageKey);
 
           if (!storedTodos) {
-            setLoadingTodos(true);
             const recentMoods = processedData.map(d => d.tooltip);
-            try {
-              const result = await getWellnessTodos({ moods: recentMoods });
-              const newTodos = result.todos.map((todo, index) => ({ id: index, text: todo, completed: false }));
-              setTodos(newTodos);
-              localStorage.setItem(todayStorageKey, JSON.stringify(newTodos));
-            } catch (error) {
-              console.error('Failed to get wellness todos:', error);
-              setTodos([{ id: 0, text: 'Could not load tasks at this time.', completed: false }]);
-            } finally {
-              setLoadingTodos(false);
-            }
+            await fetchAndSetTodos(recentMoods);
           }
         })
         .catch(console.error)
@@ -170,11 +176,18 @@ export default function DashboardPage() {
         todo.id === id ? {...todo, completed: !todo.completed} : todo
     );
     setTodos(newTodos);
+    
     try {
         const todayStorageKey = getTodayStorageKey();
         localStorage.setItem(todayStorageKey, JSON.stringify(newTodos));
     } catch (error) {
         console.error("Could not save todos to localStorage", error);
+    }
+    
+    const allCompleted = newTodos.every(todo => todo.completed);
+    if (allCompleted) {
+        const recentMoods = chartData.map(d => d.tooltip);
+        fetchAndSetTodos(recentMoods);
     }
   };
 
