@@ -143,7 +143,8 @@ export function ProfileForm() {
         // Refresh the user state to get the updated photoURL
         if (auth.currentUser) {
           await auth.currentUser.reload();
-          setUser(auth.currentUser);
+          // By creating a new user object, we force React to re-render.
+          setUser({ ...auth.currentUser });
         }
         
         toast({
