@@ -106,13 +106,17 @@ export function ProfileForm() {
     if (!auth?.currentUser || !firestore) return;
     setIsSaving(true);
     
-    // Data to be saved to Firestore (excluding images)
+    const existingProfile = await getUserProfile(firestore, auth.currentUser.uid);
+
     const updatedProfileData: Partial<UserProfile> = {
       name: data.name,
       email: data.email,
       bio: data.bio,
       motto: data.motto,
       favoriteSongUrl: data.favoriteSongUrl,
+      // Preserve existing followers/following
+      followers: existingProfile?.followers || [],
+      following: existingProfile?.following || [],
     };
     
     try {
@@ -157,7 +161,19 @@ export function ProfileForm() {
       try {
         localStorage.setItem(storageKey, dataUrl);
         setImagePreview(dataUrl);
-        toast({ title: 'Image updated!', description: 'Your new image has been saved locally.'});
+        toast({ title: 'Image updated!', description: 'Your new image has been saved locally and will be saved to your profile on your next save.'});
+
+        // Also save this to firestore immediately
+         if (firestore && user) {
+            const dataToUpdate: Partial<UserProfile> = {};
+            if (storageKey.includes('avatar')) {
+                dataToUpdate.photoURL = dataUrl;
+            } else if (storageKey.includes('cover')) {
+                dataToUpdate.coverImage = dataUrl;
+            }
+            setUserProfile(firestore, user.uid, dataToUpdate);
+         }
+
       } catch (e) {
         console.error("Error saving image to localStorage", e);
         toast({
@@ -209,9 +225,9 @@ export function ProfileForm() {
             </div>
             
             {/* Avatar and Stats Section */}
-            <div className="p-6">
-                <div className="flex flex-col sm:flex-row items-center gap-6 -mt-20">
-                  <div className="relative">
+            <div className="relative px-6">
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6">
+                  <div className="relative -mt-16 sm:-mt-12">
                     <Avatar className="h-28 w-28 border-4 border-background cursor-pointer group/avatar" onClick={() => avatarInputRef.current?.click()}>
                       <AvatarImage src={avatarPreview || ''} data-ai-hint="person portrait" />
                       <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
@@ -221,7 +237,7 @@ export function ProfileForm() {
                     </Avatar>
                     <input type="file" ref={avatarInputRef} onChange={(e) => user && handleImageFileChange(e, getAvatarStorageKey(user.uid), setAvatarPreview)} accept="image/*" className="hidden" />
                   </div>
-                   <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left pt-14 sm:pt-0">
+                   <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left pb-1">
                     <div className="flex flex-col items-center">
                        <span className="text-2xl font-bold">{profile?.followers?.length || 0}</span>
                        <span className="text-sm text-muted-foreground">Followers</span>
@@ -234,7 +250,7 @@ export function ProfileForm() {
                 </div>
             </div>
             
-            <Separator />
+            <Separator className="mt-6"/>
 
             {/* Form Fields Section */}
             <div className="p-6 space-y-8">
