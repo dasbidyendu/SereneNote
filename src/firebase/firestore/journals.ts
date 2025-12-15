@@ -37,6 +37,7 @@ export async function addJournalEntry(db: Firestore, entry: WithFieldValue<Omit<
         path: journalCollection.path,
         operation: 'create',
         requestResourceData: entry,
+        userId: entry.authorId,
       });
       errorEmitter.emit('permission-error', permissionError);
       // We still throw to allow the UI to handle the failed state

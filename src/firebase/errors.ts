@@ -2,6 +2,7 @@ export type SecurityRuleContext = {
   path: string;
   operation: 'get' | 'list' | 'create' | 'update' | 'delete';
   requestResourceData?: any;
+  userId?: string | null;
 };
 
 export class FirestorePermissionError extends Error {
@@ -21,7 +22,7 @@ export class FirestorePermissionError extends Error {
         // In a real scenario, you would populate this with the actual auth state
         // This is a placeholder to show the structure.
         auth: {
-          uid: 'some-user-id',
+          uid: context.userId || 'No user authenticated',
           token: {
             /* decoded token claims */
           },

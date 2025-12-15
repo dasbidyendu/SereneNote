@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      // Users can only read and write their own profile
+      allow read, write: if isOwner(userId);
+    }
+    
+    // JournalEntries collection
+    match /journalEntries/{journalId} {
+      // Any authenticated user can create a journal entry
+      allow create: if isSignedIn();
+      
+      // Only the author can read, update, or delete their own entries
+      allow read, update, delete: if isOwner(resource.data.authorId);
+      
+      // Allow any signed-in user to read public journal entries
+      allow list: if isSignedIn() && resource.data.isPublic == true;
+    }
+  }
+}
