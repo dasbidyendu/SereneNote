@@ -93,7 +93,7 @@ export default function CommunityPage() {
     if (user) {
         const userResults = allUsers.filter(u => 
             u.id !== user.uid && 
-            (u.name.toLowerCase().includes(lowercasedTerm) || u.bio?.toLowerCase().includes(lowercasedTerm))
+            (u.name.toLowerCase().includes(lowercasedTerm) || (u.bio && u.bio.toLowerCase().includes(lowercasedTerm)))
         );
         setFilteredUsers(userResults);
     }
@@ -261,31 +261,28 @@ export default function CommunityPage() {
 
       <div className={cn("grid gap-6 md:grid-cols-2 lg:grid-cols-3",showSearchResults && 'pointer-events-none opacity-0')}>
         {loading ? (
-          <div className="flex justify-center items-center h-64">
+          <div className="col-span-full flex justify-center items-center h-64">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
+        ) : allEntries.length > 0 ? (
+          allEntries.map(entry => (
+              <JournalCard
+              key={entry.id}
+              entry={entry}
+              onSelect={handleSelectEntry}
+              showAuthor={true}
+              user={user}
+              isFollowing={isFollowing(entry.authorId)}
+              onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+              />
+          ))
         ) : (
-          allEntries.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 col-span-3">
-              {allEntries.map(entry => (
-                  <JournalCard
-                  key={entry.id}
-                  entry={entry}
-                  onSelect={handleSelectEntry}
-                  showAuthor={true}
-                  user={user}
-                  isFollowing={isFollowing(entry.authorId)}
-                  onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
-                  />
-              ))}
-              </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64 col-span-3">
+            <div className="col-span-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
               <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
               <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
             </div>
           )
-        )}
+        }
       </div>
 
       <Dialog open={!!selectedEntry} onOpenChange={isOpen => !isOpen && handleCloseDialog()}>
