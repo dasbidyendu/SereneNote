@@ -2,46 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { getPublicJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { Users, Search, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getFirebaseServices } from '@/firebase/client';
+import { JournalCard } from '@/components/journal-card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 import { Timestamp } from 'firebase/firestore';
-
-function CommunityJournalCard({ entry }: { entry: JournalEntry }) {
-  return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <Avatar>
-            <AvatarImage src={entry.authorPhotoURL} data-ai-hint="person portrait" />
-            <AvatarFallback>{entry.authorName.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-base">{entry.authorName}</CardTitle>
-            <CardDescription>
-              {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'Just now'}
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <h3 className="font-semibold mb-2">{entry.title}</h3>
-        <p className="text-muted-foreground line-clamp-4">{entry.content}</p>
-      </CardContent>
-      <CardFooter>
-        <span className="text-sm font-medium text-accent">{entry.mood}</span>
-      </CardFooter>
-    </Card>
-  );
-}
 
 export default function CommunityPage() {
   const { firestore } = getFirebaseServices();
   const [publicEntries, setPublicEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
     if (firestore) {
@@ -55,6 +29,9 @@ export default function CommunityPage() {
     }
   }, [firestore]);
 
+  const handleCloseDialog = () => {
+    setSelectedEntry(null);
+  };
 
   return (
     <PageShell>
@@ -79,7 +56,12 @@ export default function CommunityPage() {
       ) : publicEntries.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {publicEntries.map(entry => (
-            <CommunityJournalCard key={entry.id} entry={entry} />
+            <JournalCard 
+              key={entry.id} 
+              entry={entry} 
+              onSelect={setSelectedEntry} 
+              showAuthor={true} 
+            />
           ))}
         </div>
       ) : (
@@ -88,6 +70,23 @@ export default function CommunityPage() {
           <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
         </div>
       )}
+
+      <Dialog open={!!selectedEntry} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+        {selectedEntry && (
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">{selectedEntry.title}</DialogTitle>
+              <DialogDescription>
+                By {selectedEntry.authorName} on {selectedEntry.createdAt instanceof Timestamp ? selectedEntry.createdAt.toDate().toLocaleDateString() : 'Just now'} | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <Separator />
+            <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body py-4">
+                {selectedEntry.content}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageShell>
   );
 }

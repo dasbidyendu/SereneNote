@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { PageShell } from '@/components/page-shell';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { JournalEntry, getJournalEntries } from '@/firebase/firestore/journals';
 import { Lock, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -11,25 +10,7 @@ import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-
-function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entry: JournalEntry) => void }) {
-  return (
-    <Card onClick={() => onSelect(entry)} className="cursor-pointer hover:shadow-xl transition-shadow">
-      <CardHeader>
-        <CardTitle>{entry.title}</CardTitle>
-        <CardDescription>
-          {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'Just now'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground line-clamp-3">{entry.content}</p>
-      </CardContent>
-      <CardFooter>
-        <span className="text-sm font-medium text-accent">{entry.mood}</span>
-      </CardFooter>
-    </Card>
-  );
-}
+import { JournalCard } from '@/components/journal-card';
 
 export default function PrivateJournalsPage() {
   const { user } = useUser();

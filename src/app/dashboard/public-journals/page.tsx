@@ -2,32 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { PageShell } from '@/components/page-shell';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { JournalEntry, getJournalEntries } from '@/firebase/firestore/journals';
 import { Globe, Loader2 } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
-import { Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { JournalCard } from '@/components/journal-card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+import { Timestamp } from 'firebase/firestore';
 
-function JournalCard({ entry }: { entry: JournalEntry }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{entry.title}</CardTitle>
-        <CardDescription>
-          {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'Just now'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground line-clamp-3">{entry.content}</p>
-      </CardContent>
-      <CardFooter>
-        <span className="text-sm font-medium text-accent">{entry.mood}</span>
-      </CardFooter>
-    </Card>
-  );
-}
 
 export default function PublicJournalsPage() {
   const { user } = useUser();
@@ -35,6 +19,7 @@ export default function PublicJournalsPage() {
   const { toast } = useToast();
   const [publicEntries, setPublicEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
     if (user && firestore) {
@@ -58,6 +43,10 @@ export default function PublicJournalsPage() {
     }
   }, [user, firestore, toast]);
 
+  const handleCloseDialog = () => {
+    setSelectedEntry(null);
+  };
+
   return (
     <PageShell>
        <div className="flex items-center gap-4">
@@ -74,7 +63,7 @@ export default function PublicJournalsPage() {
       ) : publicEntries.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {publicEntries.map(entry => (
-            <JournalCard key={entry.id} entry={entry} />
+            <JournalCard key={entry.id} entry={entry} onSelect={setSelectedEntry} />
           ))}
         </div>
       ) : (
@@ -83,6 +72,22 @@ export default function PublicJournalsPage() {
           <p className="text-sm text-muted-foreground">Create a new entry and make it public to share it.</p>
         </div>
       )}
+      <Dialog open={!!selectedEntry} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+        {selectedEntry && (
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">{selectedEntry.title}</DialogTitle>
+              <DialogDescription>
+                {selectedEntry.createdAt instanceof Timestamp ? selectedEntry.createdAt.toDate().toLocaleDateString() : 'Just now'} | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <Separator />
+            <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body py-4">
+                {selectedEntry.content}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageShell>
   );
 }
