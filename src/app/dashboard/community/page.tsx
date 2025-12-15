@@ -178,8 +178,9 @@ export default function CommunityPage() {
   const handleFollowToggle = async (targetUserId: string) => {
     if (!user || !firestore) return;
     const currentlyFollowing = isFollowing(targetUserId);
+    const currentUserId = user.uid;
 
-    // Optimistic update
+    // Optimistic update for current user's profile
     setUserProfile(prev => {
       if (!prev) return null;
       const currentFollowing = prev.following || [];
@@ -188,12 +189,28 @@ export default function CommunityPage() {
         : [...currentFollowing, targetUserId];
       return { ...prev, following: newFollowing };
     });
+
+    // Optimistic update for the target user's card
+    const updateUserInState = (userList: UserProfile[]) =>
+      userList.map(u => {
+        if (u.id === targetUserId) {
+          const currentFollowers = u.followers || [];
+          const newFollowers = currentlyFollowing
+            ? currentFollowers.filter(id => id !== currentUserId)
+            : [...currentFollowers, currentUserId];
+          return { ...u, followers: newFollowers };
+        }
+        return u;
+      });
+      
+    setAllUsers(prev => updateUserInState(prev));
+    setFilteredUsers(prev => updateUserInState(prev));
     
     if (currentlyFollowing) {
-      await unfollowUser(firestore, user.uid, targetUserId);
+      await unfollowUser(firestore, currentUserId, targetUserId);
       toast({ title: 'User Unfollowed' });
     } else {
-      await followUser(firestore, user.uid, targetUserId);
+      await followUser(firestore, currentUserId, targetUserId);
       toast({ title: 'User Followed' });
     }
   };
