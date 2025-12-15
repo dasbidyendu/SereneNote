@@ -2,8 +2,8 @@
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -42,7 +42,7 @@ export default function DashboardPage() {
           <div className="h-[300px] w-full">
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={moodChartData}>
+                <LineChart data={moodChartData}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
@@ -57,7 +57,7 @@ export default function DashboardPage() {
                     domain={[0, 5]}
                   />
                   <Tooltip
-                    cursor={false}
+                    cursor={{ strokeDasharray: '3 3' }}
                     content={
                       <ChartTooltipContent
                         formatter={(value, name, item) => (
@@ -69,8 +69,8 @@ export default function DashboardPage() {
                       />
                     }
                   />
-                  <Bar dataKey="mood" fill="var(--color-mood)" radius={[4, 4, 0, 0]} />
-                </BarChart>
+                  <Line type="monotone" dataKey="mood" stroke="var(--color-mood)" strokeWidth={2} dot={{r: 4, fill: "var(--color-mood)"}} />
+                </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
           </div>
