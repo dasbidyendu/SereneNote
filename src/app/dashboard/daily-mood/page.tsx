@@ -90,15 +90,15 @@ export default function DailyMoodPage() {
                           key={day.toString()}
                           onClick={() => setSelectedDate(day)}
                           className={cn(
-                            "border-b border-r border-primary/20 p-2 text-sm flex flex-col items-center justify-start cursor-pointer transition-colors hover:bg-primary/20",
+                            "border-b border-r border-primary/20 p-2 text-sm flex flex-col justify-between cursor-pointer transition-colors hover:bg-primary/20",
                             isSelected ? "bg-primary/30 ring-2 ring-primary" : "",
                             (getDay(day) === 6) && "border-r-0"
                           )}
                         >
-                            <span className={cn(isToday(day) && "bg-primary/80 text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center")}>
+                            <span className={cn("self-start", isToday(day) && "bg-primary/80 text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center")}>
                               {format(day, 'd')}
                             </span>
-                            <div className="mt-2 text-2xl">
+                            <div className="self-end text-2xl">
                               {entry ? (
                                   moodEmojis[entry.mood]
                               ) : (
