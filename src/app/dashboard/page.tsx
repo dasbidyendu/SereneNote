@@ -1,4 +1,5 @@
 'use client';
+import { useRouter } from 'next/navigation';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -15,12 +16,23 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const chartConfig = {
     mood: {
       label: 'Mood Score',
       color: 'hsl(var(--primary))',
     },
   } satisfies ChartConfig;
+
+  const handleChartClick = (data: any) => {
+    if (data && data.activePayload && data.activePayload.length > 0) {
+      const payload = data.activePayload[0].payload;
+      if (payload.fullDate) {
+        router.push(`/dashboard/daily-mood?date=${payload.fullDate}`);
+      }
+    }
+  };
+
 
   return (
     <PageShell>
@@ -35,14 +47,18 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle>Weekly Mood Analysis</CardTitle>
           <CardDescription>
-            A score of 5 is most positive, and 1 is least positive.
+            A score of 5 is most positive, and 1 is least positive. Click a point to see the entry.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-[300px] w-full">
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={moodChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <LineChart 
+                  data={moodChartData} 
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  onClick={handleChartClick}
+                >
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
@@ -70,7 +86,7 @@ export default function DashboardPage() {
                       />
                     }
                   />
-                  <Line type="monotone" dataKey="mood" stroke="var(--color-mood)" strokeWidth={2} dot={{r: 4, fill: "var(--color-mood)"}} />
+                  <Line type="monotone" dataKey="mood" stroke="var(--color-mood)" strokeWidth={2} dot={{r: 4, fill: "var(--color-mood)", cursor: 'pointer'}} activeDot={{ r: 6, cursor: 'pointer' }} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartContainer>

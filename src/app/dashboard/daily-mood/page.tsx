@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
-import { format, startOfMonth, getDay, eachDayOfInterval, isToday } from 'date-fns';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { format, startOfMonth, getDay, eachDayOfInterval, isToday, parseISO } from 'date-fns';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { journalEntries } from '@/lib/mock-data';
@@ -22,8 +23,29 @@ const moodEmojis: Record<Mood, string> = {
 const entryMap = new Map(journalEntries.map(entry => [format(new Date(entry.createdAt), 'yyyy-MM-dd'), entry]));
 
 export default function DailyMoodPage() {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+
+  const getInitialDate = () => {
+    if (dateParam) {
+        const parsedDate = parseISO(dateParam);
+        if (!isNaN(parsedDate.getTime())) {
+            return parsedDate;
+        }
+    }
+    return new Date();
+  };
+  
+  const [currentDate, setCurrentDate] = useState(getInitialDate());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(getInitialDate());
+
+  useEffect(() => {
+    const newDate = getInitialDate();
+    setCurrentDate(newDate);
+    setSelectedDate(newDate);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateParam]);
+
 
   const firstDayOfMonth = startOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({
