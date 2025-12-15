@@ -26,14 +26,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/dashboard/new-entry', icon: PlusSquare, label: 'New Entry' },
+  { href: '/dashboard/daily-mood', icon: CalendarDays, label: 'Daily Mood' },
   { href: '/dashboard/private-journals', icon: Lock, label: 'Private Journals' },
   { href: '/dashboard/public-journals', icon: Globe, label: 'Public Journals' },
   { href: '/dashboard/community', icon: Users, label: 'Community' },
-  { href: '/dashboard/daily-mood', icon: CalendarDays, label: 'Daily Mood' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -42,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar variant="inset" collapsible="icon">
         <SidebarHeader>
           <Logo />
         </SidebarHeader>
@@ -63,17 +64,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
-           <div className="flex items-center gap-3 w-full">
+           <Separator className="my-2 bg-sidebar-border" />
+           <div className="flex items-center gap-3 w-full p-2">
             <Avatar>
               <AvatarImage src="https://picsum.photos/seed/avatar_me/100/100" data-ai-hint="person portrait" />
               <AvatarFallback>JS</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate">Jane Smith</span>
+                <span className="text-sm font-semibold truncate text-sidebar-foreground">Jane Smith</span>
                 <span className="text-xs text-muted-foreground truncate">jane.smith@example.com</span>
             </div>
            </div>
-           <Button variant="ghost" className="w-full justify-start" onClick={() => router.push('/login')}>
+           <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={() => router.push('/login')}>
              <LogOut className="mr-2 h-4 w-4"/>
              <span>Logout</span>
            </Button>

@@ -24,6 +24,13 @@
     --input: 350 70% 94%;
     --ring: 350 85% 85%; /* darker milky pink */
     --radius: 0.8rem;
+
+    --sidebar-background: 350 85% 95% / 0.8;
+    --sidebar-foreground: 355 85% 25%;
+    --sidebar-border: 350 85% 90%;
+    --sidebar-accent: 350 90% 92% / 0.9;
+    --sidebar-accent-foreground: 355 85% 20%;
+    --sidebar-ring: 350 85% 85%;
   }
 
   .dark {
@@ -46,6 +53,13 @@
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 350 85% 85%;
+    
+    --sidebar-background: 240 10% 3.9% / 0.8;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-accent: 240 3.7% 15.9% / 0.9;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-ring: 350 85% 85%;
   }
 }
 
@@ -55,5 +69,11 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply backdrop-blur-md border;
   }
 }
