@@ -42,13 +42,14 @@ export default function DashboardPage() {
           <div className="h-[300px] w-full">
             <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={moodChartData}>
+                <LineChart data={moodChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid vertical={false} strokeDasharray="3 3" />
                   <XAxis
                     dataKey="date"
                     tickLine={false}
                     axisLine={false}
                     tickMargin={8}
+                    type="category"
                   />
                   <YAxis
                     tickLine={false}
