@@ -25,7 +25,8 @@ service cloud.firestore {
       
       // Only the author can read, update, or delete their own entries.
       // Anyone can read public entries.
-      allow read, update, delete: if isSignedIn() && (isOwner(resource.data.authorId) || resource.data.isPublic == true);
+      allow read: if isSignedIn() && (isOwner(resource.data.authorId) || resource.data.isPublic == true);
+      allow update, delete: if isSignedIn() && isOwner(resource.data.authorId);
 
       // Allow signed-in users to list (query) public journal entries.
       // This rule is for collections.
