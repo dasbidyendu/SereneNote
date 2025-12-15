@@ -1,6 +1,9 @@
 
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -40,6 +43,28 @@ function Footer() {
     </footer>
   );
 }
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 50 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" }
+  }
+};
+
+const cardVariants = (delay: number) => ({
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.5,
+      delay: delay,
+      ease: "easeOut"
+    }
+  }
+});
 
 export default function LandingPage() {
   const features = [
@@ -115,7 +140,12 @@ export default function LandingPage() {
             />
           <div className="absolute inset-0 bg-gradient-to-r from-primary/30 to-transparent" />
           <div className="relative z-10 p-4 max-w-7xl mx-auto flex justify-start">
-             <div className="text-left">
+             <motion.div 
+               initial={{ opacity: 0, x: -50 }}
+               animate={{ opacity: 1, x: 0 }}
+               transition={{ duration: 0.8, ease: "easeOut" }}
+               className="text-left"
+             >
                 <h1 className="text-4xl md:text-7xl font-bold font-headline mb-4 text-shadow-lg">
                   Find Your Inner Peace
                 </h1>
@@ -127,12 +157,19 @@ export default function LandingPage() {
                     Start Your Journey <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
-             </div>
+             </motion.div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-16 md:py-24 bg-secondary/50">
+        <motion.section 
+          id="features" 
+          className="py-16 md:py-24 bg-secondary/50"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={sectionVariants}
+        >
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Features to Guide You</h2>
@@ -142,34 +179,43 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
-                <Card key={index} className="overflow-hidden bg-card/60 backdrop-blur-sm border-primary/20">
-                  {feature.image && (
-                     <Image
-                      src={feature.image.imageUrl}
-                      alt={feature.image.description}
-                      width={400}
-                      height={300}
-                      className="w-full h-48 object-cover"
-                      data-ai-hint={feature.image.imageHint}
-                    />
-                  )}
-                  <CardHeader>
-                    <div className="flex items-center gap-4">
-                       <div className="bg-primary/20 p-3 rounded-lg">{feature.icon}</div>
-                       <CardTitle className="font-headline text-xl">{feature.title}</CardTitle>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground">{feature.description}</p>
-                  </CardContent>
-                </Card>
+                <motion.div key={index} variants={cardVariants(index * 0.2)}>
+                  <Card className="overflow-hidden bg-card/60 backdrop-blur-sm border-primary/20 h-full">
+                    {feature.image && (
+                       <Image
+                        src={feature.image.imageUrl}
+                        alt={feature.image.description}
+                        width={400}
+                        height={300}
+                        className="w-full h-48 object-cover"
+                        data-ai-hint={feature.image.imageHint}
+                      />
+                    )}
+                    <CardHeader>
+                      <div className="flex items-center gap-4">
+                         <div className="bg-primary/20 p-3 rounded-lg">{feature.icon}</div>
+                         <CardTitle className="font-headline text-xl">{feature.title}</CardTitle>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* About Section */}
-        <section id="about" className="py-16 md:py-24">
+        <motion.section 
+          id="about" 
+          className="py-16 md:py-24"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={sectionVariants}
+        >
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl md:text-4xl font-bold font-headline mb-4">Our Philosophy</h2>
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
@@ -178,10 +224,17 @@ export default function LandingPage() {
               with proven mental wellness techniques to help you on your path to a more serene life.
             </p>
           </div>
-        </section>
+        </motion.section>
 
         {/* How We Help Section */}
-        <section id="how-we-help" className="py-16 md:py-24 bg-secondary/50">
+        <motion.section 
+          id="how-we-help" 
+          className="py-16 md:py-24 bg-secondary/50"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={sectionVariants}
+        >
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">How We Help You</h2>
@@ -191,20 +244,29 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {helpItems.map((item, index) => (
-                <Card key={index} className="text-center p-6 bg-card/60 backdrop-blur-sm border-primary/20">
-                  <div className="flex justify-center mb-4">
-                    <div className="bg-primary/20 p-4 rounded-full">{item.icon}</div>
-                  </div>
-                  <h3 className="text-xl font-bold font-headline mb-2">{item.title}</h3>
-                  <p className="text-muted-foreground">{item.description}</p>
-                </Card>
+                <motion.div key={index} variants={cardVariants(index * 0.2)}>
+                  <Card className="text-center p-6 bg-card/60 backdrop-blur-sm border-primary/20 h-full">
+                    <div className="flex justify-center mb-4">
+                      <div className="bg-primary/20 p-4 rounded-full">{item.icon}</div>
+                    </div>
+                    <h3 className="text-xl font-bold font-headline mb-2">{item.title}</h3>
+                    <p className="text-muted-foreground">{item.description}</p>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Ratings Section */}
-        <section id="ratings" className="py-16 md:py-24">
+        <motion.section 
+          id="ratings" 
+          className="py-16 md:py-24"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.3 }}
+          variants={sectionVariants}
+        >
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">What Our Users Say</h2>
@@ -214,24 +276,33 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {ratings.map((rating, index) => (
-                <Card key={index} className="p-6 bg-card/60 backdrop-blur-sm border-primary/20">
-                   <CardContent className="p-0">
-                    <div className="flex items-center mb-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className={`h-5 w-5 ${i < rating.stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/50'}`} />
-                      ))}
-                    </div>
-                    <p className="text-muted-foreground italic mb-4">{rating.comment}</p>
-                    <p className="font-bold text-right">- {rating.name}</p>
-                  </CardContent>
-                </Card>
+                <motion.div key={index} variants={cardVariants(index * 0.2)}>
+                  <Card className="p-6 bg-card/60 backdrop-blur-sm border-primary/20 h-full">
+                     <CardContent className="p-0">
+                      <div className="flex items-center mb-2">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`h-5 w-5 ${i < rating.stars ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/50'}`} />
+                        ))}
+                      </div>
+                      <p className="text-muted-foreground italic mb-4">{rating.comment}</p>
+                      <p className="font-bold text-right">- {rating.name}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* Contact Us Section */}
-        <section id="contact" className="py-16 md:py-24 bg-secondary/50">
+        <motion.section 
+          id="contact" 
+          className="py-16 md:py-24 bg-secondary/50"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.5 }}
+          variants={sectionVariants}
+        >
           <div className="container mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold font-headline mb-2">Get In Touch</h2>
@@ -250,7 +321,7 @@ export default function LandingPage() {
               </CardContent>
             </Card>
           </div>
-        </section>
+        </motion.section>
 
       </main>
       <Footer />
