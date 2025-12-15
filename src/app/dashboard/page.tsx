@@ -19,8 +19,10 @@ import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/jou
 import { getFirebaseServices } from '@/firebase/client';
 import { subDays, format, isAfter } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { Loader2, Lightbulb } from 'lucide-react';
-import { getMoodImprovementTips } from '@/ai/flows/mood-improvement-tips';
+import { Loader2, Lightbulb, Check, ListTodo } from 'lucide-react';
+import { getWellnessTodos } from '@/ai/flows/wellness-todo-flow';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
 
 type MoodScore = 1 | 2 | 3 | 4 | 5;
 type Mood = 'Sad' | 'Anxious' | 'Calm' | 'Happy' | 'Excited';
@@ -48,14 +50,20 @@ interface ChartData {
   tooltip: string;
 }
 
+interface TodoItem {
+    id: number;
+    text: string;
+    completed: boolean;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useUser();
   const { firestore } = getFirebaseServices();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tips, setTips] = useState('');
-  const [loadingTips, setLoadingTips] = useState(true);
+  const [todos, setTodos] = useState<TodoItem[]>([]);
+  const [loadingTodos, setLoadingTodos] = useState(true);
 
   useEffect(() => {
     if (user && firestore) {
@@ -65,16 +73,16 @@ export default function DashboardPage() {
           const processedData = processJournalEntriesForChart(entries);
           setChartData(processedData);
           
-          setLoadingTips(true);
+          setLoadingTodos(true);
           const recentMoods = processedData.map(d => d.tooltip);
           try {
-            const result = await getMoodImprovementTips({ moods: recentMoods });
-            setTips(result.tips);
+            const result = await getWellnessTodos({ moods: recentMoods });
+            setTodos(result.todos.map((todo, index) => ({ id: index, text: todo, completed: false })));
           } catch (error) {
-            console.error('Failed to get mood tips:', error);
-            setTips('Could not load tips at this time. Please try again later.');
+            console.error('Failed to get wellness todos:', error);
+            setTodos([{ id: 0, text: 'Could not load tasks at this time.', completed: false }]);
           } finally {
-            setLoadingTips(false);
+            setLoadingTodos(false);
           }
         })
         .catch(console.error)
@@ -131,12 +139,20 @@ export default function DashboardPage() {
     }
   };
 
+  const handleTodoToggle = (id: number) => {
+    setTodos(prevTodos => 
+        prevTodos.map(todo => 
+            todo.id === id ? {...todo, completed: !todo.completed} : todo
+        )
+    );
+  };
+
   return (
     <PageShell>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline">Good Morning, {user?.displayName?.split(' ')[0] || 'User'}</h1>
-          <p className="text-muted-foreground">Here is your emotional summary and some tips for the day.</p>
+          <p className="text-muted-foreground">Here is your emotional summary and some tasks for the day.</p>
         </div>
       </div>
       
@@ -204,22 +220,35 @@ export default function DashboardPage() {
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline">
-                <Lightbulb className="h-5 w-5 text-primary"/>
-                Wellness Tips
+                <ListTodo className="h-5 w-5 text-primary"/>
+                Wellness To-Do
               </CardTitle>
-              <CardDescription>A little advice to brighten your day.</CardDescription>
+              <CardDescription>A few tasks to brighten your day.</CardDescription>
             </CardHeader>
             <CardContent>
-              {loadingTips ? (
+              {loadingTodos ? (
                 <div className="flex items-center justify-center h-48">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
               ) : (
-                <div className="prose prose-sm text-muted-foreground whitespace-pre-wrap font-body">
-                  {tips.split('* ').filter(tip => tip.trim()).map((tip, index) => (
-                    <div key={index} className="flex items-start gap-3 mb-3">
-                      <span className="text-primary mt-1">&bull;</span>
-                      <p className="m-0">{tip.trim()}</p>
+                <div className="space-y-4">
+                  {todos.map((todo) => (
+                    <div key={todo.id} className="flex items-center space-x-3">
+                      <Checkbox 
+                        id={`todo-${todo.id}`}
+                        checked={todo.completed}
+                        onCheckedChange={() => handleTodoToggle(todo.id)}
+                      />
+                      <label 
+                        htmlFor={`todo-${todo.id}`}
+                        className={cn(
+                            "text-sm font-medium leading-none text-muted-foreground transition-colors",
+                            todo.completed ? "line-through text-muted-foreground/60" : "text-foreground",
+                            "peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                        )}
+                      >
+                        {todo.text}
+                      </label>
                     </div>
                   ))}
                 </div>
