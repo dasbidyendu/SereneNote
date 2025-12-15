@@ -11,6 +11,8 @@ import { ArrowRight, BarChart, Bot, Users, Heart, Star, MessageSquare, CheckCirc
 import { Logo } from '@/components/logo';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function Header() {
   return (
@@ -66,7 +68,32 @@ const cardVariants = (delay: number) => ({
   }
 });
 
+const ShimmerCard = () => (
+    <Card className="overflow-hidden bg-card/60 backdrop-blur-sm border-primary/20 h-full">
+      <Skeleton className="w-full h-48 shimmer-bg" />
+      <CardHeader>
+        <div className="flex items-center gap-4">
+            <Skeleton className="w-12 h-12 rounded-lg shimmer-bg" />
+            <Skeleton className="h-6 w-32 shimmer-bg" />
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-4 w-full shimmer-bg mb-2" />
+        <Skeleton className="h-4 w-3/4 shimmer-bg" />
+      </CardContent>
+    </Card>
+);
+
 export default function LandingPage() {
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Simulate loading time
+    return () => clearTimeout(timer);
+  }, []);
+
   const features = [
     {
       icon: <BarChart className="h-8 w-8 text-primary" />,
@@ -178,7 +205,13 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
-              {features.map((feature, index) => (
+              {loading ? (
+                <>
+                  <ShimmerCard />
+                  <ShimmerCard />
+                  <ShimmerCard />
+                </>
+              ) : features.map((feature, index) => (
                 <motion.div key={index} variants={cardVariants(index * 0.2)}>
                   <Card className="overflow-hidden bg-card/60 backdrop-blur-sm border-primary/20 h-full">
                     {feature.image && (
