@@ -25,22 +25,21 @@ export async function getUserProfile(db: Firestore, userId: string): Promise<Use
 
 export async function setUserProfile(db: Firestore, userId: string, data: Partial<UserProfile>) {
   const docRef = doc(db, 'users', userId);
-  const docSnap = await getDoc(docRef);
-  const existingData = docSnap.exists() ? docSnap.data() : {};
-
-  // Ensure 'following' and 'followers' are initialized if not present
-  const mergedData = {
-    ...existingData,
-    ...data,
-    following: data.following || existingData.following || [],
-    followers: data.followers || existingData.followers || [],
-  };
-  await setDoc(docRef, mergedData, { merge: true });
+  // Always ensure followers and following are arrays, even if they dont exist in `data` or the doc
+  await setDoc(docRef, { 
+      following: [], 
+      followers: [], 
+      ...data 
+  }, { merge: true });
 }
 
 export async function followUser(db: Firestore, currentUserId: string, targetUserId: string) {
   const currentUserRef = doc(db, 'users', currentUserId);
   const targetUserRef = doc(db, 'users', targetUserId);
+  
+  // Ensure the fields exist before updating
+  await setDoc(currentUserRef, { following: [] }, { merge: true });
+  await setDoc(targetUserRef, { followers: [] }, { merge: true });
   
   await updateDoc(currentUserRef, {
     following: arrayUnion(targetUserId)
@@ -53,6 +52,10 @@ export async function followUser(db: Firestore, currentUserId: string, targetUse
 export async function unfollowUser(db: Firestore, currentUserId: string, targetUserId:string) {
   const currentUserRef = doc(db, 'users', currentUserId);
   const targetUserRef = doc(db, 'users', targetUserId);
+
+  // Ensure the fields exist before updating
+  await setDoc(currentUserRef, { following: [] }, { merge: true });
+  await setDoc(targetUserRef, { followers: [] }, { merge: true });
 
   await updateDoc(currentUserRef, {
     following: arrayRemove(targetUserId)
