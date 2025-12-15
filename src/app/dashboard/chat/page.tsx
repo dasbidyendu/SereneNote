@@ -290,7 +290,7 @@ export default function CommunityChatPage() {
                         </DialogFooter>
                     </form>
                 </Form>
-            </DialogFooter>
+            </DialogContent>
         </Dialog>
     </PageShell>
   );
