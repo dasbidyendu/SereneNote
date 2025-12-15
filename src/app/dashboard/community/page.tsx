@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import {
   getPublicJournalEntries,
@@ -12,6 +12,7 @@ import { Users, Search, Loader2, Heart } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { getFirebaseServices } from '@/firebase/client';
 import { JournalCard } from '@/components/journal-card';
+import { UserCard } from '@/components/user-card';
 import {
   Dialog,
   DialogContent,
@@ -24,16 +25,20 @@ import { Separator } from '@/components/ui/separator';
 import { Timestamp, arrayRemove, arrayUnion, increment } from 'firebase/firestore';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
-import { followUser, unfollowUser, getUserProfile } from '@/firebase/firestore/users';
-import { UserProfile } from '@/firebase/firestore/users';
+import { followUser, unfollowUser, getUserProfile, getAllUsers, UserProfile } from '@/firebase/firestore/users';
 import { useToast } from '@/hooks/use-toast';
 
 export default function CommunityPage() {
   const { firestore } = getFirebaseServices();
   const { user } = useUser();
   const { toast } = useToast();
+  
   const [allEntries, setAllEntries] = useState<JournalEntry[]>([]);
   const [filteredEntries, setFilteredEntries] = useState<JournalEntry[]>([]);
+  
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,10 +47,13 @@ export default function CommunityPage() {
   useEffect(() => {
     if (firestore) {
       setLoading(true);
-      getPublicJournalEntries(firestore)
-        .then(entries => {
+      Promise.all([
+        getPublicJournalEntries(firestore),
+        getAllUsers(firestore)
+      ]).then(([entries, users]) => {
           setAllEntries(entries);
           setFilteredEntries(entries);
+          setAllUsers(users);
           setLoading(false);
         })
         .catch(() => setLoading(false));
@@ -60,19 +68,35 @@ export default function CommunityPage() {
 
   // Fuzzy Search Logic
   useEffect(() => {
-    if (!searchTerm) {
+    const lowercasedTerm = searchTerm.toLowerCase();
+    
+    if (!lowercasedTerm) {
       setFilteredEntries(allEntries);
+      setFilteredUsers([]); // Don't show users if search is empty
       return;
     }
-    const lowercasedTerm = searchTerm.toLowerCase();
-    const results = allEntries.filter(entry => {
+
+    // Filter Entries
+    const entryResults = allEntries.filter(entry => {
       const titleMatch = entry.title.toLowerCase().includes(lowercasedTerm);
       const contentMatch = entry.content.toLowerCase().includes(lowercasedTerm);
       const authorMatch = entry.authorName.toLowerCase().includes(lowercasedTerm);
       return titleMatch || contentMatch || authorMatch;
     });
-    setFilteredEntries(results);
-  }, [searchTerm, allEntries]);
+    setFilteredEntries(entryResults);
+    
+    // Filter Users
+    if (user) {
+        const userResults = allUsers.filter(u => {
+            if (u.id === user.uid) return false; // Exclude current user from results
+            const nameMatch = u.name.toLowerCase().includes(lowercasedTerm);
+            const bioMatch = u.bio?.toLowerCase().includes(lowercasedTerm);
+            return nameMatch || bioMatch;
+        });
+        setFilteredUsers(userResults);
+    }
+
+  }, [searchTerm, allEntries, allUsers, user]);
 
   const handleSelectEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
@@ -152,7 +176,7 @@ export default function CommunityPage() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search journals, content, or users..."
+            placeholder="Search journals, users, or content..."
             className="pl-9 w-full md:w-64"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -164,29 +188,55 @@ export default function CommunityPage() {
         <div className="flex justify-center items-center h-64">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
-      ) : filteredEntries.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredEntries.map(entry => (
-            <JournalCard
-              key={entry.id}
-              entry={entry}
-              onSelect={handleSelectEntry}
-              showAuthor={true}
-              user={user}
-              isFollowing={isFollowing(entry.authorId)}
-              onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
-            />
-          ))}
-        </div>
       ) : (
-        <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
-          <p className="text-lg font-medium text-muted-foreground">
-            {searchTerm ? 'No results found.' : 'No public journals yet.'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            {searchTerm ? 'Try a different search term.' : 'Be the first to share your journey!'}
-          </p>
-        </div>
+        <>
+            {searchTerm && filteredUsers.length > 0 && (
+                <div className="space-y-4">
+                    <h2 className="text-xl font-bold font-headline">Users</h2>
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {filteredUsers.map(profile => (
+                            <UserCard
+                                key={profile.id}
+                                profile={profile}
+                                isFollowing={isFollowing(profile.id!)}
+                                onFollowToggle={() => isFollowing(profile.id!) ? handleUnfollow(profile.id!) : handleFollow(profile.id!)}
+                            />
+                        ))}
+                    </div>
+                    <Separator />
+                </div>
+            )}
+
+            {filteredEntries.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {filteredEntries.map(entry => (
+                    <JournalCard
+                    key={entry.id}
+                    entry={entry}
+                    onSelect={handleSelectEntry}
+                    showAuthor={true}
+                    user={user}
+                    isFollowing={isFollowing(entry.authorId)}
+                    onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+                    />
+                ))}
+                </div>
+            ) : (
+                !searchTerm && (
+                    <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
+                        <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
+                        <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
+                    </div>
+                )
+            )}
+            
+            {searchTerm && filteredUsers.length === 0 && filteredEntries.length === 0 && (
+                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
+                    <p className="text-lg font-medium text-muted-foreground">No results found.</p>
+                    <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                </div>
+            )}
+        </>
       )}
 
       <Dialog open={!!selectedEntry} onOpenChange={isOpen => !isOpen && handleCloseDialog()}>

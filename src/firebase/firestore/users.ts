@@ -1,8 +1,9 @@
 
 'use client';
-import { doc, getDoc, setDoc, Firestore, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Firestore, updateDoc, arrayUnion, arrayRemove, collection, getDocs } from 'firebase/firestore';
 
 export interface UserProfile {
+  id?: string;
   name: string;
   email: string;
   bio?: string;
@@ -15,7 +16,7 @@ export async function getUserProfile(db: Firestore, userId: string): Promise<Use
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    return docSnap.data() as UserProfile;
+    return { id: docSnap.id, ...docSnap.data() } as UserProfile;
   } else {
     return null;
   }
@@ -43,4 +44,14 @@ export async function unfollowUser(db: Firestore, currentUserId: string, targetU
   await updateDoc(userRef, {
     following: arrayRemove(targetUserId)
   });
+}
+
+export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
+    const users: UserProfile[] = [];
+    const usersCollection = collection(db, 'users');
+    const querySnapshot = await getDocs(usersCollection);
+    querySnapshot.forEach((doc) => {
+        users.push({ id: doc.id, ...doc.data() } as UserProfile);
+    });
+    return users;
 }
