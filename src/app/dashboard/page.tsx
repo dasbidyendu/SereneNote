@@ -79,7 +79,7 @@ export default function DashboardPage() {
            const dateString = format(entryDate, 'yyyy-MM-dd');
            // If multiple entries on the same day, keep the latest one
            if (!entriesByDate[dateString] || entry.createdAt.toMillis() > (entriesByDate[dateString].createdAt as Timestamp).toMillis()) {
-               entriesBydate[dateString] = entry;
+               entriesByDate[dateString] = entry;
            }
         }
       }
