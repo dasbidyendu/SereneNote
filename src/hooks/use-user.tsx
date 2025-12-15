@@ -31,19 +31,20 @@ export function UserProvider({ children }: UserProviderProps) {
   useEffect(() => {
     // auth will be null on the server, so we only run this on the client.
     if (!auth) {
-      setLoading(false); // On server, not loading and no user.
-      if (!publicPaths.includes(pathname)) {
-        // If on a protected route on server, we can't know user state, so we might need a different strategy
-        // For now, this will prevent a redirect loop on the server.
-      }
-      return;
+        if (typeof window === 'undefined') {
+            setLoading(false); // On server, not loading and no user.
+            return;
+        }
+        // This case can happen briefly on client before auth is initialized
+        setLoading(true);
+        return;
     }
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
       setUser(authUser);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [auth, pathname]);
+  }, [auth]);
 
   useEffect(() => {
     if (loading) return;
@@ -52,22 +53,24 @@ export function UserProvider({ children }: UserProviderProps) {
     
     if (!user && !isPublic) {
       router.push('/login');
-    } else if (user && (pathname === '/login' || pathname === '/signup' || pathname === '/')) {
+    } else if (user && isPublic) {
       router.push('/dashboard');
     }
   }, [user, loading, router, pathname]);
 
-  if (loading && !publicPaths.includes(pathname)) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const isPublic = publicPaths.includes(pathname);
+  const shouldShowLoader = loading && !isPublic;
+  const shouldRenderChildren = !loading || isPublic;
+
 
   return (
-    <UserContext.Provider value={{ user, loading, setUser }}>
-      {children}
+    <UserContext.Provider value={{ user, setUser: setUser as Dispatch<SetStateAction<User | null>> }}>
+      {shouldShowLoader && (
+        <div className="flex h-screen w-screen items-center justify-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )}
+      {shouldRenderChildren && children}
     </UserContext.Provider>
   );
 }

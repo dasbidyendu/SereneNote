@@ -24,7 +24,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Timestamp, arrayRemove, arrayUnion, increment } from 'firebase/firestore';
+import { Timestamp, arrayRemove, arrayUnion, increment, type Firestore } from 'firebase/firestore';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { followUser, unfollowUser, getUserProfile, getAllUsers, UserProfile } from '@/firebase/firestore/users';
@@ -34,8 +34,8 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function CommunityPage() {
-  const { firestore } = getFirebaseServices();
   const { user } = useUser();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
   const { toast } = useToast();
   
   const [allEntries, setAllEntries] = useState<JournalEntry[]>([]);
@@ -57,6 +57,13 @@ export default function CommunityPage() {
   const [loadingUserEntries, setLoadingUserEntries] = useState(false);
   
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (firestore) {

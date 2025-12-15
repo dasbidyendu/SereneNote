@@ -27,6 +27,8 @@ import { getFirebaseServices } from '@/firebase/client';
 import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { getUserProfile, setUserProfile, UserProfile } from '@/firebase/firestore/users';
 import { Separator } from '@/components/ui/separator';
+import { type Auth, type User } from 'firebase/auth';
+import { type Firestore } from 'firebase/firestore';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -39,11 +41,21 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export function ProfileForm() {
   const { toast } = useToast();
   const { user, loading, setUser } = useUser();
-  const { auth, firestore } = getFirebaseServices();
+  const [auth, setAuth] = useState<Auth | null>(null);
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      const { auth: a, firestore: fs } = getFirebaseServices();
+      setAuth(a);
+      setFirestore(fs);
+    }
+  }, [user]);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -99,7 +111,7 @@ export function ProfileForm() {
         // reload user to get the latest data
         await auth.currentUser.reload();
         const updatedUser = { ...auth.currentUser };
-        setUser(updatedUser);
+        setUser(updatedUser as User);
         
         // Also refetch profile data to update follower/following counts display
          const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
@@ -153,7 +165,7 @@ export function ProfileForm() {
         if (auth.currentUser) {
           await auth.currentUser.reload();
           const updatedUser = { ...auth.currentUser };
-          setUser(updatedUser);
+          setUser(updatedUser as User);
           
           const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
           if (updatedProfile) {

@@ -19,7 +19,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { getFirebaseServices } from '@/firebase/client';
 import { subDays, format, isAfter } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, type Firestore } from 'firebase/firestore';
 import { Loader2, Lightbulb, Check, ListTodo } from 'lucide-react';
 import { getWellnessTodos } from '@/ai/flows/wellness-todo-flow';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -60,7 +60,7 @@ interface TodoItem {
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useUser();
-  const { firestore } = getFirebaseServices();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [todos, setTodos] = useState<TodoItem[]>([]);
@@ -99,6 +99,13 @@ export default function DashboardPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user && firestore) {

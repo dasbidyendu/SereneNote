@@ -8,17 +8,24 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, type Firestore } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { JournalCard } from '@/components/journal-card';
 
 export default function PrivateJournalsPage() {
   const { user } = useUser();
-  const { firestore } = getFirebaseServices();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
   const { toast } = useToast();
   const [privateEntries, setPrivateEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user && firestore) {

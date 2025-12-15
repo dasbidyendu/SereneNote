@@ -34,7 +34,7 @@ import {
 import { Channel, ChatMessage, createChannel, getChannels, getMessages, sendMessage } from '@/firebase/firestore/chat';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, type Firestore } from 'firebase/firestore';
 
 const NewChannelSchema = z.object({
     name: z.string().min(3, "Channel name must be at least 3 characters.").max(30, "Channel name cannot exceed 30 characters."),
@@ -45,7 +45,7 @@ type NewChannelFormValues = z.infer<typeof NewChannelSchema>;
 
 export default function CommunityChatPage() {
   const { user } = useUser();
-  const { firestore } = getFirebaseServices();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -61,6 +61,13 @@ export default function CommunityChatPage() {
     resolver: zodResolver(NewChannelSchema),
     defaultValues: { name: '', description: '' },
   });
+
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!firestore) return;
@@ -99,7 +106,8 @@ export default function CommunityChatPage() {
         const newChannelRef = await createChannel(firestore, user, values);
         const newChannel: Channel = {
             id: newChannelRef.id,
-            ...values,
+            name: values.name,
+            description: values.description,
             creatorId: user.uid,
             createdAt: new Date(),
         };

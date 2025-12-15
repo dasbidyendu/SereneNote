@@ -12,7 +12,7 @@ import { getFirebaseServices } from '@/firebase/client';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviation-suggestions';
 import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, type Firestore } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -30,7 +30,7 @@ interface AnalysisData {
 
 export default function CbtAnalysisPage() {
   const { user } = useUser();
-  const { firestore } = getFirebaseServices();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
 
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(true);
@@ -39,6 +39,13 @@ export default function CbtAnalysisPage() {
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStep, setAnalysisStep] = useState('');
+  
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user && firestore) {

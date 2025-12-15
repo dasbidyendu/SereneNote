@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
-import { Timestamp } from 'firebase/firestore';
+import { Timestamp, type Firestore } from 'firebase/firestore';
 
 type Mood = 'Happy' | 'Calm' | 'Sad' | 'Anxious' | 'Excited';
 
@@ -27,7 +27,7 @@ const moodEmojis: Record<Mood, string> = {
 export default function DailyMoodPage() {
   const searchParams = useSearchParams();
   const { user } = useUser();
-  const { firestore } = getFirebaseServices();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
   const dateParam = searchParams.get('date');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +44,13 @@ export default function DailyMoodPage() {
   
   const [currentDate, setCurrentDate] = useState(getInitialDate());
   const [selectedDate, setSelectedDate] = useState<Date | null>(getInitialDate());
+
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user && firestore) {
