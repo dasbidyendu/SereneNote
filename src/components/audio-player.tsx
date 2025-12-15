@@ -117,7 +117,7 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
   }
   
   // Use a different proxy/service to get a direct audio stream from YouTube.
-  const audioStreamUrl = `https://youtube-to-mp3-api.vercel.app/api/audio?id=${videoId}`;
+  const audioStreamUrl = `https://music-player-api.vercel.app/api/youtube?id=${videoId}`;
 
 
   return (
