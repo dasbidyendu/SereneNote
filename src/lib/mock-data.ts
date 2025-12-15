@@ -57,6 +57,51 @@ export const journalEntries: JournalEntry[] = [
     createdAt: '2024-07-17T09:00:00Z',
     author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
   },
+   {
+    id: '6',
+    title: 'A Happy Day',
+    content: 'I had a wonderful time with my family today. We went to the beach and had a picnic.',
+    mood: 'Happy',
+    isPublic: false,
+    createdAt: '2024-07-15T14:00:00Z',
+    author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
+  },
+  {
+    id: '7',
+    title: 'A Calm Moment',
+    content: 'Took some time to meditate this morning. It really helped center me for the day.',
+    mood: 'Calm',
+    isPublic: false,
+    createdAt: '2024-07-12T08:00:00Z',
+    author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
+  },
+  {
+    id: '8',
+    title: 'Feeling Anxious',
+    content: 'I have a presentation tomorrow and I am feeling very nervous about it.',
+    mood: 'Anxious',
+    isPublic: false,
+    createdAt: '2024-07-10T18:00:00Z',
+    author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
+  },
+  {
+    id: '9',
+    title: 'Excited for my birthday',
+    content: 'My birthday is coming up and I am so excited to celebrate with my friends.',
+    mood: 'Excited',
+    isPublic: false,
+    createdAt: '2024-07-05T11:00:00Z',
+    author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
+  },
+   {
+    id: '10',
+    title: 'Feeling Happy',
+    content: 'I got a promotion at work today! I am so happy and proud of myself.',
+    mood: 'Happy',
+    isPublic: false,
+    createdAt: '2024-07-02T16:00:00Z',
+    author: { name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/avatar_me/100/100' },
+  }
 ];
 
 export const moodChartData = [
@@ -68,16 +113,3 @@ export const moodChartData = [
   { date: 'Sat', mood: 4, tooltip: 'Happy' },
   { date: 'Sun', mood: 3, tooltip: 'Calm' },
 ];
-
-export const dailyMoods = {
-    '2024-07-21': { mood: 'Happy' },
-    '2024-07-20': { mood: 'Anxious' },
-    '2024-07-19': { mood: 'Calm' },
-    '2024-07-18': { mood: 'Excited' },
-    '2024-07-17': { mood: 'Sad' },
-    '2024-07-15': { mood: 'Happy' },
-    '2024-07-12': { mood: 'Calm' },
-    '2024-07-10': { mood: 'Anxious' },
-    '2024-07-05': { mood: 'Excited' },
-    '2024-07-02': { mood: 'Happy' },
-};
