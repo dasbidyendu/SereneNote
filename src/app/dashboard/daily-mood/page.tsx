@@ -44,7 +44,7 @@ export default function DailyMoodPage() {
               mode="single"
               selected={date}
               onSelect={setDate}
-              className="rounded-md border p-4 bg-card"
+              className="rounded-md border p-4 bg-secondary/50"
               modifiers={{
                 entryDay: entryDates.map(d => new Date(d))
               }}
