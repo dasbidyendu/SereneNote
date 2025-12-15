@@ -37,7 +37,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm() {
   const { toast } = useToast();
-  const { user, loading } = useUser();
+  const { user, loading, setUser } = useUser();
   const { auth, firestore } = getFirebaseServices();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -90,6 +90,13 @@ export function ProfileForm() {
         email: data.email, // email is read-only on form, but good to store
         bio: data.bio,
       });
+
+      // Optimistically update user state
+      if (user) {
+        const updatedUser = { ...user, displayName: data.name };
+        // This is a simplified update. A more robust solution might involve re-fetching the user.
+        setUser(updatedUser as any);
+      }
       
       toast({
         title: 'Profile Updated',
@@ -112,7 +119,7 @@ export function ProfileForm() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user || !firestore) return;
+    if (!file || !user || !firestore || !auth) return;
 
     setIsUploading(true);
 
@@ -131,15 +138,15 @@ export function ProfileForm() {
           await updateProfile(auth.currentUser, { photoURL });
         }
         
-        // Also update the photoURL in the Firestore user profile
         await setUserProfile(firestore, user.uid, { photoURL });
+        
+        // Optimistically update user state
+        setUser({ ...user, photoURL } as any);
         
         toast({
           title: 'Avatar Updated',
           description: 'Your new profile picture has been saved.',
         });
-        // Force a reload of user to get new photoURL, or update state manually
-        window.location.reload(); 
       } catch (error) {
          toast({
           variant: 'destructive',

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, Dispatch, SetStateAction } from 'react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { getFirebaseServices } from '@/firebase/client';
 import { useRouter, usePathname } from 'next/navigation';
@@ -10,6 +10,7 @@ import { Loader2 } from 'lucide-react';
 export interface UserContextType {
   user: User | null;
   loading: boolean;
+  setUser: Dispatch<SetStateAction<User | null>>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -61,7 +62,7 @@ export function UserProvider({ children }: UserProviderProps) {
   }
 
   return (
-    <UserContext.Provider value={{ user, loading }}>
+    <UserContext.Provider value={{ user, loading, setUser }}>
       {children}
     </UserContext.Provider>
   );
