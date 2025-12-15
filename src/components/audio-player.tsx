@@ -5,7 +5,6 @@ import { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Volume2, VolumeX, Rewind, FastForward } from 'lucide-react';
 import { Button } from './ui/button';
 import { Slider } from './ui/slider';
-import { cn } from '@/lib/utils';
 
 interface AudioPlayerProps {
   url: string;
@@ -33,8 +32,12 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
 
       const setAudioTime = () => setCurrentTime(audio.currentTime);
 
+      const handleEnded = () => setIsPlaying(false);
+
       audio.addEventListener('loadeddata', setAudioData);
       audio.addEventListener('timeupdate', setAudioTime);
+      audio.addEventListener('ended', handleEnded);
+
 
       // Set initial volume
       audio.volume = volume;
@@ -42,6 +45,7 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
       return () => {
         audio.removeEventListener('loadeddata', setAudioData);
         audio.removeEventListener('timeupdate', setAudioTime);
+        audio.removeEventListener('ended', handleEnded);
       }
     }
   }, []);
@@ -52,7 +56,13 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
       if (isPlaying) {
         audio.pause();
       } else {
-        audio.play();
+        // We have to call load() here because the source might change
+        // or might need to be re-fetched.
+        audio.load();
+        audio.play().catch(e => {
+            console.error("Error playing audio:", e);
+            setIsPlaying(false);
+        });
       }
       setIsPlaying(!isPlaying);
     }
@@ -96,6 +106,7 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
   };
   
   const formatTime = (time: number) => {
+    if (isNaN(time) || !isFinite(time)) return "0:00";
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
@@ -104,11 +115,15 @@ export function AudioPlayer({ url }: AudioPlayerProps) {
   if (!videoId) {
     return null; // Don't render player for invalid URLs
   }
+  
+  // Use a proxy/service to get a direct audio stream from YouTube.
+  const audioStreamUrl = `https://yout-to-mp3.com/api/widget?url=https://www.youtube.com/watch?v=${videoId}`;
+
 
   return (
     <div className="p-2 space-y-2 group-data-[collapsible=icon]:hidden">
         {/* We use a hidden audio element to play the YouTube stream */}
-        <audio ref={audioRef} src={`https://www.youtube.com/watch?v=${videoId}`} className="hidden" />
+        <audio ref={audioRef} src={audioStreamUrl} className="hidden" preload="none"/>
         
         <div className="flex items-center gap-2">
             <span className="text-xs w-10 text-center">{formatTime(currentTime)}</span>
