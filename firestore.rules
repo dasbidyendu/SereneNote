@@ -51,6 +51,11 @@ service cloud.firestore {
       return changedKeys.hasAny(['likeCount', 'readCount', 'likes']);
     }
 
+    // This rule is necessary to allow collection-level queries, like fetching all users.
+    match /users/{document=**} {
+        allow list: if isSignedIn();
+    }
+
     // This rule is necessary to allow collection-level queries, like fetching all public journals.
     match /journalEntries/{document=**} {
         allow list: if isSignedIn();
