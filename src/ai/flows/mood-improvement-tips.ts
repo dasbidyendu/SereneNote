@@ -30,7 +30,7 @@ export async function getMoodImprovementTips(
 
 const prompt = ai.definePrompt({
   name: 'moodImprovementPrompt',
-  model: 'googleai/gemini-3-pro-preview',
+  model: 'googleai/gemini-1.5-pro-latest',
   input: {schema: MoodImprovementInputSchema},
   output: {schema: MoodImprovementOutputSchema},
   prompt: `You are a friendly and encouraging wellness coach. Based on the user's mood trend over the last week, provide 2-3 simple, actionable, and positive tips to help them improve their well-being.
