@@ -184,10 +184,12 @@ export default function DashboardPage() {
         console.error("Could not save todos to localStorage", error);
     }
     
+    // Check if the NEW list is all completed.
     const allCompleted = newTodos.every(todo => todo.completed);
     if (allCompleted) {
         const recentMoods = chartData.map(d => d.tooltip);
-        fetchAndSetTodos(recentMoods);
+        // Use a timeout to give the user a moment to see the last item checked
+        setTimeout(() => fetchAndSetTodos(recentMoods), 500);
     }
   };
 
