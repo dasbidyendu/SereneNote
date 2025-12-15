@@ -21,6 +21,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Timestamp, arrayRemove, arrayUnion, increment } from 'firebase/firestore';
 import { useUser } from '@/hooks/use-user';
@@ -258,14 +259,14 @@ export default function CommunityPage() {
         )}
       </AnimatePresence>
 
-      <div className={cn(showSearchResults && 'pointer-events-none opacity-0')}>
+      <div className={cn("grid gap-6 md:grid-cols-2 lg:grid-cols-3",showSearchResults && 'pointer-events-none opacity-0')}>
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         ) : (
           allEntries.length > 0 ? (
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 col-span-3">
               {allEntries.map(entry => (
                   <JournalCard
                   key={entry.id}
@@ -279,7 +280,7 @@ export default function CommunityPage() {
               ))}
               </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
+            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64 col-span-3">
               <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
               <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
             </div>
