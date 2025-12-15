@@ -27,6 +27,15 @@ export function SignupForm() {
     setIsLoading(true);
 
     const { auth } = getFirebaseServices();
+    if (!auth) {
+        setIsLoading(false);
+        toast({
+            variant: "destructive",
+            title: "Signup Failed",
+            description: "Firebase is not configured.",
+        });
+        return;
+    }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -43,11 +52,18 @@ export function SignupForm() {
       });
       router.push('/dashboard');
     } catch (error: any) {
+      let description = "An unexpected error occurred.";
+      if (error.code === 'auth/email-already-in-use') {
+        description = "This email is already in use. Please try another one or sign in.";
+      } else if (error.message) {
+        description = error.message;
+      }
+      
       console.error(error);
       toast({
         variant: "destructive",
         title: "Signup Failed",
-        description: error.message || "An unexpected error occurred.",
+        description: description,
       });
     } finally {
       setIsLoading(false);
