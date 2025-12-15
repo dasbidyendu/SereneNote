@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { format, startOfMonth, getDay, eachDayOfInterval } from 'date-fns';
+import { format, startOfMonth, getDay, eachDayOfInterval, isToday } from 'date-fns';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { journalEntries } from '@/lib/mock-data';
-import { CalendarDays, Smile, Frown, Meh, HeartPulse, Sparkles, BookText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CalendarDays, Heart, BookText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -95,10 +95,16 @@ export default function DailyMoodPage() {
                             (getDay(day) === 6) && "border-r-0"
                           )}
                         >
-                            <span>{format(day, 'd')}</span>
-                            {entry && (
-                                <div className="mt-2 text-2xl">{moodEmojis[entry.mood]}</div>
-                            )}
+                            <span className={cn(isToday(day) && "bg-primary/80 text-primary-foreground rounded-full h-6 w-6 flex items-center justify-center")}>
+                              {format(day, 'd')}
+                            </span>
+                            <div className="mt-2 text-2xl">
+                              {entry ? (
+                                  moodEmojis[entry.mood]
+                              ) : (
+                                <Heart className="h-6 w-6 text-primary/30" />
+                              )}
+                            </div>
                         </div>
                       )
                     })}
