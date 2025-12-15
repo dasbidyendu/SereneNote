@@ -19,7 +19,8 @@ import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/jou
 import { getFirebaseServices } from '@/firebase/client';
 import { subDays, format, isAfter } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lightbulb } from 'lucide-react';
+import { getMoodImprovementTips } from '@/ai/flows/mood-improvement-tips';
 
 type MoodScore = 1 | 2 | 3 | 4 | 5;
 type Mood = 'Sad' | 'Anxious' | 'Calm' | 'Happy' | 'Excited';
@@ -53,14 +54,28 @@ export default function DashboardPage() {
   const { firestore } = getFirebaseServices();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tips, setTips] = useState('');
+  const [loadingTips, setLoadingTips] = useState(true);
 
   useEffect(() => {
     if (user && firestore) {
       setLoading(true);
       getAllUserJournalEntries(firestore, user.uid)
-        .then(entries => {
+        .then(async entries => {
           const processedData = processJournalEntriesForChart(entries);
           setChartData(processedData);
+          
+          setLoadingTips(true);
+          const recentMoods = processedData.map(d => d.tooltip);
+          try {
+            const result = await getMoodImprovementTips({ moods: recentMoods });
+            setTips(result.tips);
+          } catch (error) {
+            console.error('Failed to get mood tips:', error);
+            setTips('Could not load tips at this time. Please try again later.');
+          } finally {
+            setLoadingTips(false);
+          }
         })
         .catch(console.error)
         .finally(() => setLoading(false));
@@ -74,10 +89,8 @@ export default function DashboardPage() {
     entries.forEach(entry => {
       if (entry.createdAt instanceof Timestamp) {
         const entryDate = entry.createdAt.toDate();
-        // Only consider entries from the last 7 days
         if (isAfter(entryDate, subDays(new Date(), 7))) {
            const dateString = format(entryDate, 'yyyy-MM-dd');
-           // If multiple entries on the same day, keep the latest one
            if (!entriesByDate[dateString] || entry.createdAt.toMillis() > (entriesByDate[dateString].createdAt as Timestamp).toMillis()) {
                entriesByDate[dateString] = entry;
            }
@@ -90,7 +103,7 @@ export default function DashboardPage() {
       const dayAbbr = format(date, 'E');
       const entry = entriesByDate[dateString];
 
-      const moodScore = entry ? moodToScore[entry.mood] : 0; // Default to 0 if no entry
+      const moodScore = entry ? moodToScore[entry.mood] : 0;
       const tooltip = entry ? entry.mood : 'No Entry';
       
       return {
@@ -123,67 +136,98 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold font-headline">Good Morning, {user?.displayName?.split(' ')[0] || 'User'}</h1>
-          <p className="text-muted-foreground">Here is your emotional summary for the week.</p>
+          <p className="text-muted-foreground">Here is your emotional summary and some tips for the day.</p>
         </div>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Mood Analysis</CardTitle>
-          <CardDescription>
-            A score of 5 is most positive, and 1 is least positive. Click a point to see the entry.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="w-full aspect-video">
-            {loading ? (
-              <div className="flex h-full w-full items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : (
-              <ChartContainer config={chartConfig}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart 
-                    data={chartData} 
-                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    onClick={handleChartClick}
-                  >
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      type="category"
-                    />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      domain={[0, 5]}
-                      ticks={[0, 1, 2, 3, 4, 5]}
-                    />
-                    <Tooltip
-                      cursor={{ strokeDasharray: '3 3' }}
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, name, item) => (
-                            <div className="flex flex-col">
-                              <span>{item.payload.tooltip}</span>
-                              <span className="text-muted-foreground text-xs">{value === 0 ? 'No Data' : `Score: ${value}`}</span>
-                            </div>
-                          )}
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Weekly Mood Analysis</CardTitle>
+              <CardDescription>
+                A score of 5 is most positive, and 1 is least positive. Click a point to see the entry.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full aspect-video">
+                {loading ? (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <ChartContainer config={chartConfig}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart 
+                        data={chartData} 
+                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        onClick={handleChartClick}
+                      >
+                        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          type="category"
                         />
-                      }
-                    />
-                    <Line type="monotone" dataKey="mood" stroke="var(--color-mood)" strokeWidth={2} dot={{r: 4, fill: "var(--color-mood)", cursor: 'pointer'}} activeDot={{ r: 6, cursor: 'pointer' }} connectNulls={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                        <YAxis
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={8}
+                          domain={[0, 5]}
+                          ticks={[0, 1, 2, 3, 4, 5]}
+                        />
+                        <Tooltip
+                          cursor={{ strokeDasharray: '3 3' }}
+                          content={
+                            <ChartTooltipContent
+                              formatter={(value, name, item) => (
+                                <div className="flex flex-col">
+                                  <span>{item.payload.tooltip}</span>
+                                  <span className="text-muted-foreground text-xs">{value === 0 ? 'No Data' : `Score: ${value}`}</span>
+                                </div>
+                              )}
+                            />
+                          }
+                        />
+                        <Line type="monotone" dataKey="mood" stroke="var(--color-mood)" strokeWidth={2} dot={{r: 4, fill: "var(--color-mood)", cursor: 'pointer'}} activeDot={{ r: 6, cursor: 'pointer' }} connectNulls={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="md:col-span-1">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-headline">
+                <Lightbulb className="h-5 w-5 text-primary"/>
+                Wellness Tips
+              </CardTitle>
+              <CardDescription>A little advice to brighten your day.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingTips ? (
+                <div className="flex items-center justify-center h-48">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (
+                <div className="prose prose-sm text-muted-foreground whitespace-pre-wrap font-body">
+                  {tips.split('* ').filter(tip => tip.trim()).map((tip, index) => (
+                    <div key={index} className="flex items-start gap-3 mb-3">
+                      <span className="text-primary mt-1">&bull;</span>
+                      <p className="m-0">{tip.trim()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </PageShell>
   );
 }
