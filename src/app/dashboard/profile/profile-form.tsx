@@ -91,11 +91,11 @@ export function ProfileForm() {
         bio: data.bio,
       });
 
-      // Optimistically update user state
-      if (user) {
-        const updatedUser = { ...user, displayName: data.name };
-        // This is a simplified update. A more robust solution might involve re-fetching the user.
-        setUser(updatedUser as any);
+      // Update user state with the latest from auth
+      if(auth.currentUser) {
+        // reload user to get the latest data
+        await auth.currentUser.reload();
+        setUser(auth.currentUser);
       }
       
       toast({
@@ -119,7 +119,7 @@ export function ProfileForm() {
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !user || !firestore || !auth) return;
+    if (!file || !user || !firestore || !auth?.currentUser) return;
 
     setIsUploading(true);
 
@@ -140,8 +140,11 @@ export function ProfileForm() {
         
         await setUserProfile(firestore, user.uid, { photoURL });
         
-        // Optimistically update user state
-        setUser({ ...user, photoURL } as any);
+        // Refresh the user state to get the updated photoURL
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          setUser(auth.currentUser);
+        }
         
         toast({
           title: 'Avatar Updated',

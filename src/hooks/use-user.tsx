@@ -32,6 +32,10 @@ export function UserProvider({ children }: UserProviderProps) {
     // auth will be null on the server, so we only run this on the client.
     if (!auth) {
       setLoading(false); // On server, not loading and no user.
+      if (!publicPaths.includes(pathname)) {
+        // If on a protected route on server, we can't know user state, so we might need a different strategy
+        // For now, this will prevent a redirect loop on the server.
+      }
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, (authUser) => {
@@ -39,7 +43,7 @@ export function UserProvider({ children }: UserProviderProps) {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, pathname]);
 
   useEffect(() => {
     if (loading) return;
