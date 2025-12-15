@@ -20,6 +20,7 @@ import {
   Lock,
   Globe,
   Users,
+  User,
   CalendarDays,
   LogOut,
   Wand2,
@@ -37,6 +38,7 @@ const navItems = [
   { href: '/dashboard/private-journals', icon: Lock, label: 'Private Journals' },
   { href: '/dashboard/public-journals', icon: Globe, label: 'Public Journals' },
   { href: '/dashboard/community', icon: Users, label: 'Community' },
+  { href: '/dashboard/profile', icon: User, label: 'Profile' },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -67,7 +69,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </SidebarContent>
         <SidebarFooter>
            <Separator className="my-2 bg-sidebar-border" />
-           <div className="flex items-center gap-3 w-full p-2">
+           <div 
+             className="flex items-center gap-3 w-full p-2 rounded-md cursor-pointer hover:bg-sidebar-accent"
+             onClick={() => router.push('/dashboard/profile')}
+           >
             <Avatar>
               <AvatarImage src="https://picsum.photos/seed/avatar_me/100/100" data-ai-hint="person portrait" />
               <AvatarFallback>JS</AvatarFallback>
