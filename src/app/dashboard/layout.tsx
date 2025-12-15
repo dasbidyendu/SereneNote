@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -29,6 +30,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -44,6 +49,31 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    const { auth } = getFirebaseServices();
+    try {
+      await signOut(auth);
+      toast({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+      });
+      router.push('/login');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: 'An error occurred while logging out.',
+      });
+    }
+  };
+  
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
 
   return (
     <SidebarProvider>
@@ -57,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <SidebarMenuItem key={item.href}>
                 <SidebarMenuButton
                   onClick={() => router.push(item.href)}
-                  isActive={pathname === item.href}
+                  isActive={pathname.startsWith(item.href) && (item.href !== '/dashboard' || pathname === '/dashboard')}
                   tooltip={item.label}
                 >
                   <item.icon />
@@ -74,15 +104,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
              onClick={() => router.push('/dashboard/profile')}
            >
             <Avatar>
-              <AvatarImage src="https://picsum.photos/seed/avatar_me/100/100" data-ai-hint="person portrait" />
-              <AvatarFallback>JS</AvatarFallback>
+              <AvatarImage src={user?.photoURL || ''} data-ai-hint="person portrait" />
+              <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate text-sidebar-foreground">Jane Smith</span>
-                <span className="text-xs text-muted-foreground truncate">jane.smith@example.com</span>
+                <span className="text-sm font-semibold truncate text-sidebar-foreground">{user?.displayName || 'User'}</span>
+                <span className="text-xs text-muted-foreground truncate">{user?.email}</span>
             </div>
            </div>
-           <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={() => router.push('/login')}>
+           <Button variant="ghost" className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" onClick={handleLogout}>
              <LogOut className="mr-2 h-4 w-4"/>
              <span>Logout</span>
            </Button>

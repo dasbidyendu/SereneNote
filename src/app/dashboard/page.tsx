@@ -1,3 +1,4 @@
+
 'use client';
 import { useRouter } from 'next/navigation';
 import { PageShell } from '@/components/page-shell';
@@ -14,9 +15,12 @@ import {
 import { moodChartData } from '@/lib/mock-data';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { ChartConfig } from '@/components/ui/chart';
+import { useUser } from '@/hooks/use-user';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user } = useUser();
+
   const chartConfig = {
     mood: {
       label: 'Mood Score',
@@ -38,7 +42,7 @@ export default function DashboardPage() {
     <PageShell>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Good Morning, Jane</h1>
+          <h1 className="text-3xl font-bold font-headline">Good Morning, {user?.displayName?.split(' ')[0] || 'User'}</h1>
           <p className="text-muted-foreground">Here is your emotional summary for the week.</p>
         </div>
       </div>

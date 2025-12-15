@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -18,7 +19,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera } from 'lucide-react';
+import { Camera, Loader2 } from 'lucide-react';
+import { useUser } from '@/hooks/use-user';
+import { useEffect, useRef, useState } from 'react';
+import { updateProfile } from 'firebase/auth';
+import { getFirebaseServices } from '@/firebase/client';
+import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -30,22 +36,107 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm() {
   const { toast } = useToast();
+  const { user, loading } = useUser();
+  const { auth } = getFirebaseServices();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      bio: 'Lover of quiet mornings, hot tea, and thoughtful reflection.',
+      name: '',
+      email: '',
+      bio: '',
     },
     mode: 'onChange',
   });
 
-  function onSubmit(data: ProfileFormValues) {
-    toast({
-      title: 'Profile Updated',
-      description: 'Your information has been successfully saved.',
-    });
+  useEffect(() => {
+    if (user) {
+      form.reset({
+        name: user.displayName || '',
+        email: user.email || '',
+        bio: '', // Bio is not stored in firebase auth user object by default
+      });
+    }
+  }, [user, form]);
+  
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '';
+    return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  }
+
+  async function onSubmit(data: ProfileFormValues) {
+    if (!auth.currentUser) return;
+    setIsSaving(true);
+    try {
+      await updateProfile(auth.currentUser, {
+        displayName: data.name,
+      });
+
+      // NOTE: Bio would be saved to a Firestore document, not implemented here.
+      
+      toast({
+        title: 'Profile Updated',
+        description: 'Your information has been successfully saved.',
+      });
+    } catch (error) {
+       toast({
+        variant: 'destructive',
+        title: 'Update Failed',
+        description: 'Could not update your profile. Please try again.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    setIsUploading(true);
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      const storage = getStorage();
+      const storageRef = ref(storage, `avatars/${user.uid}`);
+      
+      try {
+        await uploadString(storageRef, dataUrl, 'data_url');
+        const photoURL = await getDownloadURL(storageRef);
+
+        if (auth.currentUser) {
+          await updateProfile(auth.currentUser, { photoURL });
+        }
+        
+        toast({
+          title: 'Avatar Updated',
+          description: 'Your new profile picture has been saved.',
+        });
+        // Force a reload of user to get new photoURL, or update state manually
+        window.location.reload(); 
+      } catch (error) {
+         toast({
+          variant: 'destructive',
+          title: 'Upload Failed',
+          description: 'Could not upload your new avatar. Please try again.',
+        });
+      } finally {
+        setIsUploading(false);
+      }
+    };
+  }
+
+  if (loading) {
+    return <Card><CardContent className="p-6"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></CardContent></Card>
   }
 
   return (
@@ -59,14 +150,15 @@ export function ProfileForm() {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src="https://picsum.photos/seed/avatar_me/100/100" data-ai-hint="person portrait" />
-                  <AvatarFallback>JS</AvatarFallback>
+                <Avatar className="h-20 w-20 cursor-pointer" onClick={handleAvatarClick}>
+                  <AvatarImage src={user?.photoURL || ''} data-ai-hint="person portrait" />
+                  <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                 </Avatar>
-                <Button variant="outline" size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full">
-                  <Camera className="h-4 w-4" />
+                <Button variant="outline" size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full" onClick={handleAvatarClick} disabled={isUploading}>
+                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
                   <span className="sr-only">Change photo</span>
                 </Button>
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               </div>
               <p className="text-sm text-muted-foreground">Click the camera to upload a new photo.</p>
             </div>
@@ -118,7 +210,10 @@ export function ProfileForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit">Save Changes</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
           </form>
         </Form>
       </CardContent>
