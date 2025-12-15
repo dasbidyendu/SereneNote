@@ -8,7 +8,7 @@
  * }
  */
 
-import {ai} from '@/ai/genkit';
+import {ai_ as ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const CbtStressAlleviationInputSchema = z.object({
