@@ -42,8 +42,6 @@ function Footer() {
 }
 
 export default function LandingPage() {
-  const heroImage = PlaceHolderImages.find(p => p.id === 'hero');
-
   const features = [
     {
       icon: <BarChart className="h-8 w-8 text-primary" />,
@@ -106,17 +104,15 @@ export default function LandingPage() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[80vh] md:h-[90vh] flex items-center justify-center text-center text-white">
-          {heroImage && (
+        <section className="relative h-[80vh] md:h-[90vh] flex items-center justify-center text-center text-white overflow-hidden">
             <Image
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
+              src="/download.jpg"
+              alt="Pink flowers"
               fill
-              className="object-cover object-center"
+              className="object-cover object-center scale-150 rotate-90"
               priority
-              data-ai-hint={heroImage.imageHint}
+              data-ai-hint="pink flower"
             />
-          )}
           <div className="absolute inset-0 bg-gradient-to-r from-black/30 to-transparent" />
           <div className="relative z-10 p-4 max-w-7xl mx-auto flex justify-start">
              <div className="text-left">
