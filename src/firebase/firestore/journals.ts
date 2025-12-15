@@ -47,16 +47,24 @@ export async function addJournalEntry(db: Firestore, entry: WithFieldValue<Omit<
 
 export async function getJournalEntries(db: Firestore, userId: string, isPublic: boolean): Promise<JournalEntry[]> {
   const entries: JournalEntry[] = [];
+  // The query was too complex, requiring a composite index.
+  // We'll filter on the server and sort on the client.
   const q = query(
     collection(db, 'journalEntries'),
     where('authorId', '==', userId),
-    where('isPublic', '==', isPublic),
-    orderBy('createdAt', 'desc')
+    where('isPublic', '==', isPublic)
   );
 
   const querySnapshot = await getDocs(q);
   querySnapshot.forEach((doc) => {
     entries.push({ id: doc.id, ...doc.data() } as JournalEntry);
+  });
+  
+  // Sort entries by date on the client side (descending)
+  entries.sort((a, b) => {
+    const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+    const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+    return dateB - dateA;
   });
 
   return entries;
