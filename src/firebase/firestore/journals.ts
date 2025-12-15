@@ -11,6 +11,8 @@ import {
   DocumentData,
   WithFieldValue,
   Timestamp,
+  doc,
+  updateDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -25,25 +27,40 @@ export interface JournalEntry extends DocumentData {
   authorName: string;
   authorPhotoURL: string;
   createdAt: Timestamp | object;
+  likeCount?: number;
+  readCount?: number;
+  likes?: string[];
 }
 
 export async function addJournalEntry(db: Firestore, entry: WithFieldValue<Omit<JournalEntry, 'id'>>) {
+  const journalData = {
+    ...entry,
+    likeCount: 0,
+    readCount: 0,
+    likes: [],
+  };
+
   const journalCollection = collection(db, 'journalEntries');
   
   // Do not await, chain .catch for error handling
-  addDoc(journalCollection, entry)
+  addDoc(journalCollection, journalData)
     .catch(async (serverError) => {
       console.error("Error adding document: ", serverError);
       const permissionError = new FirestorePermissionError({
         path: journalCollection.path,
         operation: 'create',
-        requestResourceData: entry,
-        userId: entry.authorId,
+        requestResourceData: journalData,
+        userId: journalData.authorId,
       });
       errorEmitter.emit('permission-error', permissionError);
       // We still throw to allow the UI to handle the failed state
       throw new Error('Failed to add journal entry');
     });
+}
+
+export async function updateJournalEntry(db: Firestore, entryId: string, data: DocumentData) {
+  const entryRef = doc(db, 'journalEntries', entryId);
+  await updateDoc(entryRef, data);
 }
 
 export async function getJournalEntries(db: Firestore, userId: string, isPublic: boolean): Promise<JournalEntry[]> {

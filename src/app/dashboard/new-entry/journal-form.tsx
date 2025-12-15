@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -121,12 +122,8 @@ export function JournalForm() {
       }
 
     } catch (error) {
+      // Error is now handled by the global error emitter, but we can catch it here if we need to stop loading state
       console.error('Failed to save journal entry:', error);
-      toast({
-        variant: 'destructive',
-        title: 'An error occurred.',
-        description: 'Could not save your journal entry. Please try again.',
-      });
     } finally {
       setIsLoading(false);
     }

@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -22,6 +23,13 @@
           "type": "string",
           "format": "uri",
           "description": "URL of the user's profile picture."
+        },
+        "following": {
+          "type": "array",
+          "description": "A list of user IDs that this user is following.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -73,6 +81,21 @@
         "createdAt": {
           "type": "object",
           "description": "The timestamp when the entry was created."
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "The number of likes the entry has received."
+        },
+        "readCount": {
+          "type": "number",
+          "description": "The number of times the entry has been read."
+        },
+        "likes": {
+          "type": "array",
+          "description": "A list of user IDs who have liked the entry.",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

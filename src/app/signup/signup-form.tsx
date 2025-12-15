@@ -54,6 +54,7 @@ export function SignupForm() {
           email,
           bio: '',
           photoURL: user.photoURL,
+          following: [],
         });
       }
 
