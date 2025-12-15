@@ -13,18 +13,27 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
     
-    // Helper function to check if the update is ONLY for likes or reads
+    // Helper function to check if the incoming write is ONLY for likes or reads.
+    // It checks that no other fields are being changed.
     function isLikingOrReading() {
       let changedKeys = request.resource.data.diff(resource.data).affectedKeys;
-      // Allow updates only to 'likes', 'likeCount', and 'readCount'.
-      // The user can update one or more of these at the same time.
-      return changedKeys.hasOnly(['likes', 'likeCount', 'readCount']);
+      let allowedKeys = ['likes', 'likeCount', 'readCount'];
+      return changedKeys.hasOnly(allowedKeys) || 
+             (changedKeys.hasAll(allowedKeys) && changedKeys.size() <= allowedKeys.size());
+    }
+
+    // A simpler check for when an author is updating their own post.
+    // We just need to make sure they are NOT touching the like/read fields.
+    function isNotLikingOrReading() {
+       let changedKeys = request.resource.data.diff(resource.data).affectedKeys;
+       return !changedKeys.hasAny(['likes', 'likeCount', 'readCount']);
     }
 
     // Users collection
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow write: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update, delete: if isOwner(userId);
     }
     
     // This rule is necessary to allow collection-level queries.
@@ -43,8 +52,8 @@ service cloud.firestore {
       // Allow author to update their own non-like/read fields.
       // Allow any signed-in user to ONLY update likes and read counts.
       allow update: if isSignedIn() && 
-                      ( (isOwner(resource.data.authorId) && !isLikingOrReading()) ||
-                        (isLikingOrReading()) );
+                      ( (isOwner(resource.data.authorId) && isNotLikingOrReading()) ||
+                        (!isOwner(resource.data.authorId) && isLikingOrReading()) );
     }
 
     // This rule is necessary to allow collection-level queries, like fetching all public journals.
