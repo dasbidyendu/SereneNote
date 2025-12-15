@@ -8,6 +8,7 @@ import { Globe, Loader2 } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 function JournalCard({ entry }: { entry: JournalEntry }) {
   return (
@@ -31,20 +32,31 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
 export default function PublicJournalsPage() {
   const { user } = useUser();
   const { firestore } = getFirebaseServices();
+  const { toast } = useToast();
   const [publicEntries, setPublicEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user && firestore) {
-      setLoading(true);
-      getJournalEntries(firestore, user.uid, true)
-        .then(entries => {
+      const fetchEntries = async () => {
+        setLoading(true);
+        try {
+          const entries = await getJournalEntries(firestore, user.uid, true);
           setPublicEntries(entries);
+        } catch (error: any) {
+          console.error("Failed to fetch public journals:", error);
+          toast({
+            variant: "destructive",
+            title: "Failed to load journals",
+            description: "There was an issue fetching public journal entries.",
+          });
+        } finally {
           setLoading(false);
-        })
-        .catch(() => setLoading(false));
+        }
+      };
+      fetchEntries();
     }
-  }, [user, firestore]);
+  }, [user, firestore, toast]);
 
   return (
     <PageShell>

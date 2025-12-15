@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entry: JournalEntry) => void }) {
   return (
@@ -33,21 +34,32 @@ function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entr
 export default function PrivateJournalsPage() {
   const { user } = useUser();
   const { firestore } = getFirebaseServices();
+  const { toast } = useToast();
   const [privateEntries, setPrivateEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
     if (user && firestore) {
-      setLoading(true);
-      getJournalEntries(firestore, user.uid, false)
-        .then(entries => {
+      const fetchEntries = async () => {
+        setLoading(true);
+        try {
+          const entries = await getJournalEntries(firestore, user.uid, false);
           setPrivateEntries(entries);
+        } catch (error: any) {
+          console.error("Failed to fetch private journals:", error);
+          toast({
+            variant: "destructive",
+            title: "Failed to load journals",
+            description: "You might not have permission to view these entries.",
+          });
+        } finally {
           setLoading(false);
-        })
-        .catch(() => setLoading(false));
+        }
+      };
+      fetchEntries();
     }
-  }, [user, firestore]);
+  }, [user, firestore, toast]);
 
   const handleCloseDialog = () => {
     setSelectedEntry(null);
