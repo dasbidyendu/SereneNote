@@ -1,16 +1,3 @@
-export type JournalEntry = {
-  id: string;
-  title: string;
-  content: string;
-  mood: 'Happy' | 'Calm' | 'Sad' | 'Anxious' | 'Excited';
-  isPublic: boolean;
-  createdAt: string;
-  author: {
-    name: string;
-    avatarUrl: string;
-  };
-};
-
 export const moodChartData = [
   { date: 'Mon', fullDate: '2024-07-22T10:00:00Z', mood: 4, tooltip: 'Happy' },
   { date: 'Tue', fullDate: '2024-07-23T15:30:00Z', mood: 2, tooltip: 'Anxious' },
