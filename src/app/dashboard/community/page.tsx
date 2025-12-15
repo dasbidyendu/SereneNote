@@ -57,6 +57,7 @@ export default function CommunityPage() {
         getPublicJournalEntries(firestore),
         getAllUsers(firestore)
       ]).then(([entries, users]) => {
+          console.log('Fetched Data:', { entries, users });
           const sortedEntries = entries.sort((a, b) => {
             const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
             const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
@@ -65,9 +66,13 @@ export default function CommunityPage() {
           setAllEntries(sortedEntries);
           setFilteredEntries(sortedEntries);
           setAllUsers(users);
+          setFilteredUsers([]);
           setLoading(false);
         })
-        .catch(() => setLoading(false));
+        .catch((error) => {
+            console.error("Failed to fetch initial data:", error);
+            setLoading(false)
+        });
     }
   }, [firestore]);
 
@@ -79,11 +84,13 @@ export default function CommunityPage() {
 
   // Fuzzy Search Logic
   useEffect(() => {
+    console.log(`Search term: "${searchTerm}"`);
     const lowercasedTerm = searchTerm.toLowerCase();
     
     if (!lowercasedTerm) {
       setFilteredEntries(allEntries);
       setFilteredUsers([]);
+      console.log('Search term empty, showing all entries.');
       return;
     }
 
@@ -94,8 +101,9 @@ export default function CommunityPage() {
     );
     setFilteredEntries(entryResults);
     
+    let userResults: UserProfile[] = [];
     if (user) {
-        const userResults = allUsers.filter(u => {
+        userResults = allUsers.filter(u => {
             if (u.id === user.uid) return false;
             const nameMatch = u.name.toLowerCase().includes(lowercasedTerm);
             const bioMatch = u.bio ? u.bio.toLowerCase().includes(lowercasedTerm) : false;
@@ -103,6 +111,8 @@ export default function CommunityPage() {
         });
         setFilteredUsers(userResults);
     }
+    
+    console.log('Search Results:', { filteredUsers: userResults, filteredEntries: entryResults });
 
   }, [searchTerm, allEntries, allUsers, user]);
 
