@@ -4,13 +4,14 @@ import { useEffect, useState, useMemo } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, BookOpenCheck, BrainCircuit, Leaf, Gamepad2 } from 'lucide-react';
+import { Loader2, Sparkles, BookOpenCheck, BrainCircuit, Leaf, Gamepad2, Mic } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviation-suggestions';
+import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +25,7 @@ interface AnalysisData {
   suggestions: string;
   guidedMeditation: string;
   reflectiveExercise: string;
+  meditationAudioUri?: string;
 }
 
 export default function CbtAnalysisPage() {
@@ -36,6 +38,7 @@ export default function CbtAnalysisPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState('');
 
   useEffect(() => {
     if (user && firestore) {
@@ -54,12 +57,13 @@ export default function CbtAnalysisPage() {
     setAnalysis(null);
     setIsAnalyzing(true);
     try {
+      setAnalysisStep('Analyzing your thoughts...');
       const result = await cbtStressAlleviationSuggestions({
         journalEntry: entry.content,
         mood: entry.mood,
       });
 
-      setAnalysis({
+      const analysisData = {
         entry: {
           journalEntry: entry.content,
           mood: entry.mood,
@@ -68,12 +72,23 @@ export default function CbtAnalysisPage() {
         suggestions: result.suggestions,
         guidedMeditation: result.guidedMeditation,
         reflectiveExercise: result.reflectiveExercise,
+      };
+      setAnalysis(analysisData);
+
+      setAnalysisStep('Generating guided meditation audio...');
+      const audioResult = await textToSpeech({ text: result.guidedMeditation });
+      
+      setAnalysis({
+        ...analysisData,
+        meditationAudioUri: audioResult.audioDataUri,
       });
+
     } catch (error) {
       console.error('Failed to get analysis', error);
       // Optionally show a toast message here
     } finally {
       setIsAnalyzing(false);
+      setAnalysisStep('');
     }
   };
 
@@ -153,7 +168,7 @@ export default function CbtAnalysisPage() {
                       className="flex flex-col items-center justify-center h-full text-center p-4"
                     >
                         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                        <p className="text-muted-foreground font-semibold">Analyzing your thoughts...</p>
+                        <p className="text-muted-foreground font-semibold">{analysisStep}</p>
                         <p className="text-sm text-muted-foreground">This can take a moment, please be patient.</p>
                     </motion.div>
                 ) : analysis && selectedEntry ? (
@@ -181,9 +196,17 @@ export default function CbtAnalysisPage() {
                              Guided Meditation
                            </h3>
                            <p className="text-sm text-muted-foreground mb-4">A short meditation to bring you to the present.</p>
-                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body mb-6">
-                               {analysis.guidedMeditation}
-                           </div>
+                            {analysis.meditationAudioUri ? (
+                                <audio controls className="w-full">
+                                    <source src={analysis.meditationAudioUri} type="audio/wav" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                            ) : (
+                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                   <Loader2 className="h-4 w-4 animate-spin"/>
+                                   <p>Audio is preparing...</p>
+                               </div>
+                            )}
 
                            <Separator className="my-6"/>
 
