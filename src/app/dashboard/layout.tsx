@@ -75,8 +75,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!name) return 'U';
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
-  
-  const isSpecialPage = ['/dashboard/new-entry', '/dashboard/cbt-analysis'].includes(pathname);
 
   return (
     <SidebarProvider>
@@ -126,8 +124,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            <SidebarTrigger />
            <Logo />
         </div>
-        <div className={cn("flex-1", !isSpecialPage && "bg-[url('/download(1).jpg')] bg-cover bg-center")}>
-          <div className={cn("h-full w-full", !isSpecialPage && "bg-background/80")}>
+        <div className="flex-1 bg-[url('/download(1).jpg')] bg-cover bg-center">
+          <div className="h-full w-full bg-background/80">
             {children}
           </div>
         </div>
