@@ -19,35 +19,40 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Camera, Loader2, Users, UserPlus } from 'lucide-react';
+import { Camera, Loader2, Users, Image as ImageIcon, Music } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { useEffect, useRef, useState } from 'react';
-import { updateProfile } from 'firebase/auth';
 import { getFirebaseServices } from '@/firebase/client';
-import { getStorage, ref, uploadString, getDownloadURL } from 'firebase/storage';
 import { getUserProfile, setUserProfile, UserProfile } from '@/firebase/firestore/users';
 import { Separator } from '@/components/ui/separator';
-import { type Auth, type User } from 'firebase/auth';
+import { type Auth } from 'firebase/auth';
 import { type Firestore } from 'firebase/firestore';
+import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 const profileSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email(),
   bio: z.string().max(160).optional(),
+  motto: z.string().max(50).optional(),
+  favoriteSongUrl: z.string().url({ message: 'Please enter a valid YouTube URL.' }).optional().or(z.literal('')),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export function ProfileForm() {
   const { toast } = useToast();
-  const { user, loading, setUser } = useUser();
+  const { user, profile, loading, setProfile } = useUser();
   const [auth, setAuth] = useState<Auth | null>(null);
   const [firestore, setFirestore] = useState<Firestore | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [profileData, setProfileData] = useState<UserProfile | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -63,25 +68,25 @@ export function ProfileForm() {
       name: '',
       email: '',
       bio: '',
+      motto: '',
+      favoriteSongUrl: '',
     },
     mode: 'onChange',
   });
 
   useEffect(() => {
-    if (user && firestore) {
+    if (user && profile) {
       form.reset({
-        name: user.displayName || '',
+        name: profile.name || user.displayName || '',
         email: user.email || '',
+        bio: profile.bio || '',
+        motto: profile.motto || '',
+        favoriteSongUrl: profile.favoriteSongUrl || '',
       });
-
-      getUserProfile(firestore, user.uid).then(profile => {
-        if (profile) {
-          form.setValue('bio', profile.bio || '');
-          setProfileData(profile);
-        }
-      });
+      setAvatarPreview(profile.photoURL || null);
+      setCoverPreview(profile.coverImage || null);
     }
-  }, [user, firestore, form]);
+  }, [user, profile, form]);
   
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '';
@@ -91,34 +96,22 @@ export function ProfileForm() {
   async function onSubmit(data: ProfileFormValues) {
     if (!auth?.currentUser || !firestore) return;
     setIsSaving(true);
+    
+    const updatedProfileData: Partial<UserProfile> = {
+      name: data.name,
+      email: data.email,
+      bio: data.bio,
+      motto: data.motto,
+      favoriteSongUrl: data.favoriteSongUrl,
+      photoURL: avatarPreview || '',
+      coverImage: coverPreview || '',
+    };
+    
     try {
-      // Update Firebase Auth display name
-      if (auth.currentUser.displayName !== data.name) {
-        await updateProfile(auth.currentUser, {
-          displayName: data.name,
-        });
-      }
+      await setUserProfile(firestore, auth.currentUser.uid, updatedProfileData);
       
-      // Update Firestore profile document
-      await setUserProfile(firestore, auth.currentUser.uid, {
-        name: data.name,
-        email: data.email, // email is read-only on form, but good to store
-        bio: data.bio,
-      });
-
-      // Update user state with the latest from auth
-      if(auth.currentUser) {
-        // reload user to get the latest data
-        await auth.currentUser.reload();
-        const updatedUser = { ...auth.currentUser };
-        setUser(updatedUser as User);
-        
-        // Also refetch profile data to update follower/following counts display
-         const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
-         if (updatedProfile) {
-           setProfileData(updatedProfile);
-         }
-      }
+      // Update the user context with the new profile data
+      setProfile(prev => ({ ...prev, ...updatedProfileData } as UserProfile));
       
       toast({
         title: 'Profile Updated',
@@ -135,150 +128,178 @@ export function ProfileForm() {
     }
   }
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    setImagePreview: React.Dispatch<React.SetStateAction<string | null>>
+  ) => {
     const file = event.target.files?.[0];
-    if (!file || !user || !firestore || !auth?.currentUser) return;
-
-    setIsUploading(true);
+    if (!file) return;
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = async () => {
+    reader.onload = () => {
       const dataUrl = reader.result as string;
-      const storage = getStorage();
-      const storageRef = ref(storage, `avatars/${user.uid}`);
-      
-      try {
-        await uploadString(storageRef, dataUrl, 'data_url');
-        const photoURL = await getDownloadURL(storageRef);
-
-        if (auth.currentUser) {
-          await updateProfile(auth.currentUser, { photoURL });
-        }
-        
-        await setUserProfile(firestore, user.uid, { photoURL });
-        
-        if (auth.currentUser) {
-          await auth.currentUser.reload();
-          const updatedUser = { ...auth.currentUser };
-          setUser(updatedUser as User);
-          
-          const updatedProfile = await getUserProfile(firestore, updatedUser.uid);
-          if (updatedProfile) {
-            setProfileData(updatedProfile);
-          }
-        }
-        
-        toast({
-          title: 'Avatar Updated',
-          description: 'Your new profile picture has been saved.',
-        });
-      } catch (error) {
-         toast({
-          variant: 'destructive',
-          title: 'Upload Failed',
-          description: 'Could not upload your new avatar. Please try again.',
-        });
-      } finally {
-        setIsUploading(false);
-      }
+      setImagePreview(dataUrl);
     };
-  }
+  };
 
   if (loading) {
-    return <Card><CardContent className="p-6"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></CardContent></Card>
+    return <Card><CardContent className="p-6 flex items-center justify-center h-96"><Loader2 className="mx-auto h-8 w-8 animate-spin"/></CardContent></Card>
   }
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Edit Profile</CardTitle>
-        <CardDescription>Make changes to your profile here. Click save when you're done.</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-24 w-24 cursor-pointer" onClick={handleAvatarClick}>
-                  <AvatarImage src={user?.photoURL || ''} data-ai-hint="person portrait" />
-                  <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
-                </Avatar>
-                <Button variant="outline" size="icon" className="absolute bottom-0 right-0 h-8 w-8 rounded-full" onClick={handleAvatarClick} disabled={isUploading}>
-                  {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
-                  <span className="sr-only">Change photo</span>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            {/* Cover Image Section */}
+            <div className="relative h-48 bg-muted group">
+              {coverPreview && (
+                <Image
+                  src={coverPreview}
+                  alt="Cover image"
+                  layout="fill"
+                  objectFit="cover"
+                  className="rounded-t-lg"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-t-lg">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="bg-white/80 hover:bg-white text-black"
+                >
+                  <ImageIcon className="mr-2 h-4 w-4" /> Change Cover
                 </Button>
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
               </div>
-              <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left">
-                <div className="flex flex-col items-center">
-                   <span className="text-2xl font-bold">{profileData?.followers?.length || 0}</span>
-                   <span className="text-sm text-muted-foreground">Followers</span>
-                </div>
-                 <div className="flex flex-col items-center">
-                   <span className="text-2xl font-bold">{profileData?.following?.length || 0}</span>
-                   <span className="text-sm text-muted-foreground">Following</span>
-                </div>
-              </div>
+              <input 
+                type="file" 
+                ref={coverInputRef} 
+                onChange={(e) => handleImageFileChange(e, setCoverPreview)} 
+                accept="image/*" 
+                className="hidden" 
+              />
             </div>
-          
+            
+            {/* Avatar and Stats Section */}
+            <div className="p-6">
+                <div className="flex flex-col sm:flex-row items-center gap-6 -mt-20">
+                  <div className="relative">
+                    <Avatar className="h-28 w-28 border-4 border-background cursor-pointer group/avatar" onClick={() => avatarInputRef.current?.click()}>
+                      <AvatarImage src={avatarPreview || ''} data-ai-hint="person portrait" />
+                      <AvatarFallback>{getInitials(profile?.name)}</AvatarFallback>
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity rounded-full">
+                        <Camera className="h-6 w-6 text-white" />
+                      </div>
+                    </Avatar>
+                    <input type="file" ref={avatarInputRef} onChange={(e) => handleImageFileChange(e, setAvatarPreview)} accept="image/*" className="hidden" />
+                  </div>
+                   <div className="flex-1 flex justify-center sm:justify-start gap-6 text-center sm:text-left pt-14 sm:pt-0">
+                    <div className="flex flex-col items-center">
+                       <span className="text-2xl font-bold">{profile?.followers?.length || 0}</span>
+                       <span className="text-sm text-muted-foreground">Followers</span>
+                    </div>
+                     <div className="flex flex-col items-center">
+                       <span className="text-2xl font-bold">{profile?.following?.length || 0}</span>
+                       <span className="text-sm text-muted-foreground">Following</span>
+                    </div>
+                  </div>
+                </div>
+            </div>
+            
             <Separator />
 
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="your@email.com" {...field} readOnly disabled />
-                  </FormControl>
-                  <FormDescription>Your email address cannot be changed.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Bio</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Tell us a little bit about yourself"
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    A brief description of yourself to be displayed on your public profile.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" disabled={isSaving}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save Changes
-            </Button>
+            {/* Form Fields Section */}
+            <div className="p-6 space-y-8">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Your Name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="motto"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Motto</FormLabel>
+                      <FormControl>
+                        <Input placeholder="A short, catchy phrase about you" {...field} />
+                      </FormControl>
+                       <FormDescription>Your personal motto, shown on your community card.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="your@email.com" {...field} readOnly disabled />
+                      </FormControl>
+                      <FormDescription>Your email address cannot be changed.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="bio"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Bio</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Tell us a little bit about yourself"
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        A brief description of yourself to be displayed on your public profile.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                 <FormField
+                  control={form.control}
+                  name="favoriteSongUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center gap-2">
+                        <Music className="h-4 w-4"/>
+                        Favorite Song
+                      </FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://www.youtube.com/watch?v=..." {...field} />
+                      </FormControl>
+                       <FormDescription>Paste a YouTube URL to add a song to your personal player.</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Changes
+                </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

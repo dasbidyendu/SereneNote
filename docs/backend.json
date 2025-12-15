@@ -21,8 +21,20 @@
         },
         "photoURL": {
           "type": "string",
-          "format": "uri",
-          "description": "URL of the user's profile picture."
+          "description": "Data URI of the user's profile picture."
+        },
+        "coverImage": {
+            "type": "string",
+            "description": "Data URI of the user's profile cover image."
+        },
+        "motto": {
+            "type": "string",
+            "description": "A short motto or quote for the user's profile."
+        },
+        "favoriteSongUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the user's favorite YouTube song."
         },
         "following": {
           "type": "array",

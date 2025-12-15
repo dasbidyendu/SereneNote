@@ -35,7 +35,7 @@ import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { AudioPlayer } from '@/components/audio-player';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -52,7 +52,7 @@ const navItems = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const { toast } = useToast();
 
   const handleLogout = async () => {
@@ -101,13 +101,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
+           {profile?.favoriteSongUrl && <AudioPlayer url={profile.favoriteSongUrl} />}
            <Separator className="my-2 bg-sidebar-border" />
            <div 
              className="flex items-center gap-3 w-full p-2 rounded-md cursor-pointer hover:bg-sidebar-accent"
              onClick={() => router.push('/dashboard/profile')}
            >
             <Avatar>
-              <AvatarImage src={user?.photoURL || ''} data-ai-hint="person portrait" />
+              <AvatarImage src={profile?.photoURL || ''} data-ai-hint="person portrait" />
               <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col overflow-hidden">

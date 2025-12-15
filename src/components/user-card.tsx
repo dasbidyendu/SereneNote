@@ -6,7 +6,8 @@ import { type UserProfile } from '@/firebase/firestore/users';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { UserPlus, UserCheck, Users } from 'lucide-react';
+import { UserPlus, UserCheck, Users, Quote } from 'lucide-react';
+import Image from 'next/image';
 
 interface UserCardProps {
   profile: UserProfile;
@@ -49,21 +50,29 @@ export function UserCard({
     >
       <Card 
         className={cn(
-            'h-full bg-card/60 backdrop-blur-sm transition-shadow duration-300 ease-in-out border-border/20 flex flex-col',
+            'h-full bg-card/60 backdrop-blur-sm transition-shadow duration-300 ease-in-out border-border/20 flex flex-col overflow-hidden',
             className
         )}
       >
-        <CardHeader>
-            <div className="flex items-center gap-4">
-                <Avatar className="h-12 w-12">
+        <div className="relative h-24 bg-muted">
+            {profile.coverImage && (
+                <Image src={profile.coverImage} alt={`${profile.name}'s cover image`} layout="fill" objectFit="cover" />
+            )}
+            <div className="absolute -bottom-8 left-4">
+                 <Avatar className="h-16 w-16 border-4 border-background">
                   <AvatarImage src={profile.photoURL} data-ai-hint="person portrait" />
                   <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
                 </Avatar>
-                <div className="overflow-hidden">
-                    <CardTitle className="font-headline text-lg truncate">{profile.name}</CardTitle>
-                    <CardDescription className="truncate">{profile.email}</CardDescription>
-                </div>
             </div>
+        </div>
+        <CardHeader className="pt-10">
+            <CardTitle className="font-headline text-lg truncate">{profile.name}</CardTitle>
+            {profile.motto && (
+                <CardDescription className="flex items-center gap-2 text-xs italic">
+                    <Quote className="w-3 h-3"/>
+                    {profile.motto}
+                </CardDescription>
+            )}
         </CardHeader>
         <CardContent className="flex-grow space-y-4">
           <p className="text-sm text-muted-foreground line-clamp-2 h-10">{profile.bio || 'No bio yet.'}</p>
