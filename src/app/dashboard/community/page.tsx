@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { PageShell } from '@/components/page-shell';
 import {
   getPublicJournalEntries,
@@ -27,6 +27,9 @@ import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { followUser, unfollowUser, getUserProfile, getAllUsers, UserProfile } from '@/firebase/firestore/users';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function CommunityPage() {
   const { firestore } = getFirebaseServices();
@@ -43,6 +46,9 @@ export default function CommunityPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (firestore) {
@@ -52,7 +58,7 @@ export default function CommunityPage() {
         getAllUsers(firestore)
       ]).then(([entries, users]) => {
           setAllEntries(entries);
-          setFilteredEntries(entries);
+          setFilteredEntries(entries); // Initially show all entries
           setAllUsers(users);
           setLoading(false);
         })
@@ -72,27 +78,22 @@ export default function CommunityPage() {
     
     if (!lowercasedTerm) {
       setFilteredEntries(allEntries);
-      setFilteredUsers([]); // Don't show users if search is empty
+      setFilteredUsers([]);
       return;
     }
 
-    // Filter Entries
-    const entryResults = allEntries.filter(entry => {
-      const titleMatch = entry.title.toLowerCase().includes(lowercasedTerm);
-      const contentMatch = entry.content.toLowerCase().includes(lowercasedTerm);
-      const authorMatch = entry.authorName.toLowerCase().includes(lowercasedTerm);
-      return titleMatch || contentMatch || authorMatch;
-    });
+    const entryResults = allEntries.filter(entry => 
+      entry.title.toLowerCase().includes(lowercasedTerm) ||
+      entry.content.toLowerCase().includes(lowercasedTerm) ||
+      entry.authorName.toLowerCase().includes(lowercasedTerm)
+    );
     setFilteredEntries(entryResults);
     
-    // Filter Users
     if (user) {
-        const userResults = allUsers.filter(u => {
-            if (u.id === user.uid) return false; // Exclude current user from results
-            const nameMatch = u.name.toLowerCase().includes(lowercasedTerm);
-            const bioMatch = u.bio?.toLowerCase().includes(lowercasedTerm);
-            return nameMatch || bioMatch;
-        });
+        const userResults = allUsers.filter(u => 
+            u.id !== user.uid && 
+            (u.name.toLowerCase().includes(lowercasedTerm) || u.bio?.toLowerCase().includes(lowercasedTerm))
+        );
         setFilteredUsers(userResults);
     }
 
@@ -101,28 +102,22 @@ export default function CommunityPage() {
   const handleSelectEntry = (entry: JournalEntry) => {
     setSelectedEntry(entry);
     if (firestore && entry.id) {
-      // Increment read count
       updateJournalEntry(firestore, entry.id, { readCount: increment(1) });
-      // Optimistically update the UI
       setAllEntries(prev => prev.map(e => e.id === entry.id ? {...e, readCount: (e.readCount || 0) + 1} : e));
     }
   };
 
-  const handleCloseDialog = () => {
-    setSelectedEntry(null);
-  };
+  const handleCloseDialog = () => setSelectedEntry(null);
 
   const handleHeartClick = async () => {
     if (!selectedEntry || !user || !firestore || !selectedEntry.id) return;
     
     const entryId = selectedEntry.id;
     const userId = user.uid;
-
     const isLiked = selectedEntry.likes?.includes(userId);
     const newLikes = isLiked ? arrayRemove(userId) : arrayUnion(userId);
     const newLikeCount = isLiked ? increment(-1) : increment(1);
 
-    // Optimistically update the UI
     setSelectedEntry(prev => {
       if (!prev) return null;
       const currentLikes = prev.likes || [];
@@ -140,7 +135,6 @@ export default function CommunityPage() {
       likeCount: (e.likeCount || 0) + (isLiked ? -1 : 1)
     } : e));
 
-    // Update Firestore
     await updateJournalEntry(firestore, entryId, {
       likes: newLikes,
       likeCount: newLikeCount,
@@ -158,10 +152,13 @@ export default function CommunityPage() {
     if (!user || !firestore) return;
     await unfollowUser(firestore, user.uid, authorId);
     setUserProfile(prev => prev ? {...prev, following: (prev.following || []).filter(id => id !== authorId)} : null);
-     toast({ title: 'User Unfollowed' });
+    toast({ title: 'User Unfollowed' });
   };
   
   const isFollowing = (authorId: string) => userProfile?.following?.includes(authorId);
+
+  const showSearchResults = isSearchFocused && searchTerm.length > 0;
+  const hasResults = filteredUsers.length > 0 || filteredEntries.length > 0;
 
   return (
     <PageShell>
@@ -173,71 +170,122 @@ export default function CommunityPage() {
             <p className="text-muted-foreground">Connect and share with others on their journey.</p>
           </div>
         </div>
-        <div className="relative">
+        <div className="relative z-50">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
+            ref={searchInputRef}
             placeholder="Search journals, users, or content..."
             className="pl-9 w-full md:w-64"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsSearchFocused(true)}
           />
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      ) : (
-        <>
-            {searchTerm && filteredUsers.length > 0 && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold font-headline">Users</h2>
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {filteredUsers.map(profile => (
-                            <UserCard
-                                key={profile.id}
-                                profile={profile}
-                                isFollowing={isFollowing(profile.id!)}
-                                onFollowToggle={() => isFollowing(profile.id!) ? handleUnfollow(profile.id!) : handleFollow(profile.id!)}
-                            />
-                        ))}
-                    </div>
-                    <Separator />
-                </div>
-            )}
+      <AnimatePresence>
+        {showSearchResults && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
+              onClick={() => {
+                setIsSearchFocused(false);
+                searchInputRef.current?.blur();
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-28 left-1/2 -translate-x-1/2 w-[90vw] max-w-4xl z-50"
+            >
+              <Card className="max-h-[70vh] flex flex-col">
+                <CardHeader>
+                  <CardTitle>Search Results for "{searchTerm}"</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-hidden">
+                  <ScrollArea className="h-[55vh]">
+                    {hasResults ? (
+                       <div className="space-y-6">
+                        {filteredUsers.length > 0 && (
+                          <div className="space-y-4">
+                            <h2 className="text-xl font-bold font-headline px-2">Users</h2>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                              {filteredUsers.map(profile => (
+                                <UserCard
+                                  key={profile.id}
+                                  profile={profile}
+                                  isFollowing={isFollowing(profile.id!)}
+                                  onFollowToggle={() => isFollowing(profile.id!) ? handleUnfollow(profile.id!) : handleFollow(profile.id!)}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {filteredEntries.length > 0 && (
+                           <div className="space-y-4">
+                             <h2 className="text-xl font-bold font-headline px-2">Journals</h2>
+                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {filteredEntries.map(entry => (
+                                    <JournalCard
+                                      key={entry.id}
+                                      entry={entry}
+                                      onSelect={handleSelectEntry}
+                                      showAuthor={true}
+                                      user={user}
+                                      isFollowing={isFollowing(entry.authorId)}
+                                      onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+                                    />
+                                ))}
+                             </div>
+                           </div>
+                        )}
+                       </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-center p-8 h-full">
+                        <p className="text-lg font-medium text-muted-foreground">No results found.</p>
+                        <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-            {filteredEntries.length > 0 ? (
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredEntries.map(entry => (
-                    <JournalCard
-                    key={entry.id}
-                    entry={entry}
-                    onSelect={handleSelectEntry}
-                    showAuthor={true}
-                    user={user}
-                    isFollowing={isFollowing(entry.authorId)}
-                    onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
-                    />
-                ))}
-                </div>
-            ) : (
-                !searchTerm && (
-                    <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
-                        <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
-                        <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
-                    </div>
-                )
-            )}
-            
-            {searchTerm && filteredUsers.length === 0 && filteredEntries.length === 0 && (
-                 <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
-                    <p className="text-lg font-medium text-muted-foreground">No results found.</p>
-                    <p className="text-sm text-muted-foreground">Try a different search term.</p>
-                </div>
-            )}
-        </>
-      )}
+      <div className={cn(showSearchResults && 'pointer-events-none opacity-0')}>
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+        ) : (
+          allEntries.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {allEntries.map(entry => (
+                  <JournalCard
+                  key={entry.id}
+                  entry={entry}
+                  onSelect={handleSelectEntry}
+                  showAuthor={true}
+                  user={user}
+                  isFollowing={isFollowing(entry.authorId)}
+                  onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+                  />
+              ))}
+              </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
+              <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
+              <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
+            </div>
+          )
+        )}
+      </div>
 
       <Dialog open={!!selectedEntry} onOpenChange={isOpen => !isOpen && handleCloseDialog()}>
         {selectedEntry && (
