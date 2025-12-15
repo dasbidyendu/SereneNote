@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
@@ -170,7 +169,7 @@ export default function CommunityPage() {
 
   return (
     <PageShell>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div className="flex items-center gap-4">
           <Users className="h-8 w-8 text-primary" />
           <div>
@@ -268,7 +267,7 @@ export default function CommunityPage() {
 
       <div className={cn("transition-opacity", showSearchResults && 'pointer-events-none opacity-0')}>
         {loading ? (
-          <div className="col-span-full flex justify-center items-center h-64">
+          <div className="flex justify-center items-center h-64">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
         ) : allEntries.length > 0 ? (
@@ -304,14 +303,16 @@ export default function CommunityPage() {
                 {selectedEntry.createdAt instanceof Timestamp
                   ? selectedEntry.createdAt.toDate().toLocaleDateString()
                   : 'Just now'}{' '}
-                | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
+                | Mood: <span className="font-semibold text-accent-foreground">{selectedEntry.mood}</span>
               </DialogDescription>
             </DialogHeader>
             <Separator />
-            <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body py-4">
-              {selectedEntry.content}
-            </div>
-            <DialogFooter className="justify-between sm:justify-between w-full">
+            <ScrollArea className="max-h-[60vh] pr-4">
+              <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body py-4">
+                {selectedEntry.content}
+              </div>
+            </ScrollArea>
+            <DialogFooter className="justify-between sm:justify-between w-full border-t pt-4">
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                    <Heart className="h-4 w-4" /> {selectedEntry.likeCount || 0}
@@ -323,11 +324,12 @@ export default function CommunityPage() {
               {user && user.uid !== selectedEntry.authorId && (
                 <Button variant="ghost" onClick={handleHeartClick} size="icon">
                   <Heart
-                    className={`h-5 w-5 ${
+                    className={cn(
+                      "h-5 w-5",
                       selectedEntry.likes?.includes(user.uid)
                         ? 'text-red-500 fill-current'
                         : 'text-muted-foreground'
-                    }`}
+                    )}
                   />
                 </Button>
               )}
