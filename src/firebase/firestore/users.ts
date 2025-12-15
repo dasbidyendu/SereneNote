@@ -25,13 +25,17 @@ export async function getUserProfile(db: Firestore, userId: string): Promise<Use
 
 export async function setUserProfile(db: Firestore, userId: string, data: Partial<UserProfile>) {
   const docRef = doc(db, 'users', userId);
+  const docSnap = await getDoc(docRef);
+  const existingData = docSnap.exists() ? docSnap.data() : {};
+
   // Ensure 'following' and 'followers' are initialized if not present
-  const initialData = {
+  const mergedData = {
+    ...existingData,
     ...data,
-    following: data.following || [],
-    followers: data.followers || [],
+    following: data.following || existingData.following || [],
+    followers: data.followers || existingData.followers || [],
   };
-  await setDoc(docRef, initialData, { merge: true });
+  await setDoc(docRef, mergedData, { merge: true });
 }
 
 export async function followUser(db: Firestore, currentUserId: string, targetUserId: string) {
@@ -46,7 +50,7 @@ export async function followUser(db: Firestore, currentUserId: string, targetUse
   });
 }
 
-export async function unfollowUser(db: Firestore, currentUserId: string, targetUserId: string) {
+export async function unfollowUser(db: Firestore, currentUserId: string, targetUserId:string) {
   const currentUserRef = doc(db, 'users', currentUserId);
   const targetUserRef = doc(db, 'users', targetUserId);
 

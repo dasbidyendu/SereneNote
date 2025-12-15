@@ -65,6 +65,7 @@ export default function CommunityPage() {
         getPublicJournalEntries(firestore),
         getAllUsers(firestore)
       ]).then(([entries, users]) => {
+          console.log('Fetched all users:', users);
           const sortedEntries = entries.sort((a, b) => {
             const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
             const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
@@ -121,6 +122,7 @@ export default function CommunityPage() {
             return nameMatch || bioMatch;
         });
     }
+    console.log('Filtered Users:', userResults);
     setFilteredEntries(entryResults);
     setFilteredUsers(userResults);
 
@@ -190,7 +192,7 @@ export default function CommunityPage() {
       return { ...prev, following: newFollowing };
     });
 
-    // Optimistic update for the target user's card
+    // Optimistic update for the target user's card/state
     const updateUserInState = (userList: UserProfile[]) =>
       userList.map(u => {
         if (u.id === targetUserId) {
