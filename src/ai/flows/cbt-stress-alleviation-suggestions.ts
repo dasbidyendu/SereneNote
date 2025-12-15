@@ -9,7 +9,7 @@
  * }
  */
 
-import {ai_ as ai} from '@/ai/genkit';
+import {ai as ai_} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const CbtStressAlleviationInputSchema = z.object({
@@ -35,7 +35,7 @@ export async function cbtStressAlleviationSuggestions(
   return cbtStressAlleviationFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = ai_.definePrompt({
   name: 'cbtStressAlleviationPrompt',
   model: 'googleai/gemini-pro',
   input: {schema: CbtStressAlleviationInputSchema},
@@ -50,7 +50,7 @@ const prompt = ai.definePrompt({
   Suggestions:`,
 });
 
-const cbtStressAlleviationFlow = ai.defineFlow(
+const cbtStressAlleviationFlow = ai_.defineFlow(
   {
     name: 'cbtStressAlleviationFlow',
     inputSchema: CbtStressAlleviationInputSchema,

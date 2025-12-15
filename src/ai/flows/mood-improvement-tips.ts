@@ -9,7 +9,7 @@
  * }
  */
 
-import {ai_ as ai} from '@/ai/genkit';
+import {ai as ai_} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const MoodImprovementInputSchema = z.object({
@@ -28,7 +28,7 @@ export async function getMoodImprovementTips(
   return moodImprovementFlow(input);
 }
 
-const prompt = ai.definePrompt({
+const prompt = ai_.definePrompt({
   name: 'moodImprovementPrompt',
   model: 'googleai/gemini-pro',
   input: {schema: MoodImprovementInputSchema},
@@ -45,7 +45,7 @@ const prompt = ai.definePrompt({
   *   Jot down one thing you're grateful for today.`,
 });
 
-const moodImprovementFlow = ai.defineFlow(
+const moodImprovementFlow = ai_.defineFlow(
   {
     name: 'moodImprovementFlow',
     inputSchema: MoodImprovementInputSchema,
