@@ -19,8 +19,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviation-suggestions';
-import { Loader2, Wand2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/use-user';
@@ -47,7 +46,6 @@ export function JournalForm() {
   const { user } = useUser();
   const { firestore } = getFirebaseServices();
   const [isLoading, setIsLoading] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -59,34 +57,7 @@ export function JournalForm() {
     },
   });
 
-  async function handleAiAnalysis(values: FormValues) {
-    setIsAiLoading(true);
-    try {
-      const result = await cbtStressAlleviationSuggestions({
-        journalEntry: values.journalEntry,
-        mood: values.mood,
-      });
-      
-      sessionStorage.setItem('cbtAnalysis', JSON.stringify({
-        entry: values,
-        suggestions: result.suggestions,
-      }));
-
-      router.push('/dashboard/cbt-analysis');
-      
-    } catch (error) {
-      console.error('Failed to get suggestions:', error);
-      toast({
-        variant: 'destructive',
-        title: 'An error occurred.',
-        description: 'Could not get AI suggestions. Please try again.',
-      });
-    } finally {
-      setIsAiLoading(false);
-    }
-  }
-
-  async function onSubmit(values: FormValues, analyzeWithAi: boolean = false) {
+  async function onSubmit(values: FormValues) {
     if (!firestore || !user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
@@ -112,23 +83,22 @@ export function JournalForm() {
       });
 
       form.reset();
-
-      if (analyzeWithAi) {
-        await handleAiAnalysis(values);
-      } else {
-        // Redirect to the appropriate journal list
-        router.push(values.isPublic ? '/dashboard/public-journals' : '/dashboard/private-journals');
-      }
+      
+      // Redirect to the appropriate journal list
+      router.push(values.isPublic ? '/dashboard/public-journals' : '/dashboard/private-journals');
 
     } catch (error) {
       // Error is now handled by the global error emitter, but we can catch it here if we need to stop loading state
       console.error('Failed to save journal entry:', error);
+       toast({
+        variant: 'destructive',
+        title: 'Save Failed',
+        description: 'Could not save your journal entry. Please try again.',
+      });
     } finally {
       setIsLoading(false);
     }
   }
-  
-  const isSubmitting = isLoading || isAiLoading;
 
   return (
     <Card>
@@ -137,7 +107,7 @@ export function JournalForm() {
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((values) => onSubmit(values))} className="space-y-8">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormField
               control={form.control}
               name="title"
@@ -214,7 +184,7 @@ export function JournalForm() {
                     <Switch
                       checked={field.value}
                       onCheckedChange={field.onChange}
-                      disabled={isSubmitting}
+                      disabled={isLoading}
                     />
                   </FormControl>
                 </FormItem>
@@ -222,17 +192,9 @@ export function JournalForm() {
             />
             
             <div className="flex flex-wrap gap-4">
-              <Button type="submit" disabled={isSubmitting}>
-                {isLoading && !isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save Entry
-              </Button>
-              <Button type="button" onClick={form.handleSubmit((values) => onSubmit(values, true))} disabled={isSubmitting}>
-                {isAiLoading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Wand2 className="mr-2 h-4 w-4" />
-                )}
-                Save & Analyze
               </Button>
             </div>
           </form>
