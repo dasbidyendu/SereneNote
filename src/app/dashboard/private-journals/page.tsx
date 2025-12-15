@@ -1,11 +1,16 @@
+'use client';
+
+import { useState } from 'react';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { journalEntries, JournalEntry } from '@/lib/mock-data';
 import { Lock } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
-function JournalCard({ entry }: { entry: JournalEntry }) {
+function JournalCard({ entry, onSelect }: { entry: JournalEntry, onSelect: (entry: JournalEntry) => void }) {
   return (
-    <Card>
+    <Card onClick={() => onSelect(entry)} className="cursor-pointer hover:shadow-xl transition-shadow">
       <CardHeader>
         <CardTitle>{entry.title}</CardTitle>
         <CardDescription>{new Date(entry.createdAt).toLocaleDateString()}</CardDescription>
@@ -22,6 +27,11 @@ function JournalCard({ entry }: { entry: JournalEntry }) {
 
 export default function PrivateJournalsPage() {
   const privateEntries = journalEntries.filter(entry => !entry.isPublic);
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+
+  const handleCloseDialog = () => {
+    setSelectedEntry(null);
+  };
 
   return (
     <PageShell>
@@ -35,7 +45,7 @@ export default function PrivateJournalsPage() {
       {privateEntries.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {privateEntries.map(entry => (
-            <JournalCard key={entry.id} entry={entry} />
+            <JournalCard key={entry.id} entry={entry} onSelect={setSelectedEntry} />
           ))}
         </div>
       ) : (
@@ -44,6 +54,23 @@ export default function PrivateJournalsPage() {
           <p className="text-sm text-muted-foreground">Create a new entry and keep it private to see it here.</p>
         </div>
       )}
+
+      <Dialog open={!!selectedEntry} onOpenChange={(isOpen) => !isOpen && handleCloseDialog()}>
+        {selectedEntry && (
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-2xl">{selectedEntry.title}</DialogTitle>
+              <DialogDescription>
+                {new Date(selectedEntry.createdAt).toLocaleDateString()} | Mood: <span className="font-semibold text-accent">{selectedEntry.mood}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <Separator />
+            <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body py-4">
+                {selectedEntry.content}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </PageShell>
   );
 }
