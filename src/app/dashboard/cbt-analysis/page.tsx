@@ -57,7 +57,7 @@ export default function CbtAnalysisPage() {
       className="relative flex-1 bg-cover bg-center"
       style={{ backgroundImage: "url('/download(1).jpg')" }}
     >
-      <div className="absolute inset-0 bg-background/80 -z-10" />
+      <div className="absolute inset-0 bg-background/80" />
       <PageShell>
         <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}}>
           <div className="flex items-center gap-4 mb-4">
