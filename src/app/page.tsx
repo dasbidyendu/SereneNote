@@ -104,12 +104,12 @@ export default function LandingPage() {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative h-[80vh] md:h-[90vh] flex items-center justify-center text-center text-white overflow-hidden">
+        <section className="relative h-screen flex items-center justify-center text-center text-white overflow-hidden">
             <Image
               src="/download.jpg"
               alt="Pink flowers"
               fill
-              className="object-cover object-center scale-150 rotate-90"
+              className="object-cover object-center"
               priority
               data-ai-hint="pink flower"
             />
