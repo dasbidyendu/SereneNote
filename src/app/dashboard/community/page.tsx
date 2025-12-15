@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Timestamp, arrayRemove, arrayUnion, increment } from 'firebase/firestore';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ export default function CommunityPage() {
   
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
+  const [followedUsers, setFollowedUsers] = useState<UserProfile[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
@@ -57,7 +59,6 @@ export default function CommunityPage() {
         getPublicJournalEntries(firestore),
         getAllUsers(firestore)
       ]).then(([entries, users]) => {
-          console.log('Fetched Data:', { entries, users });
           const sortedEntries = entries.sort((a, b) => {
             const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
             const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
@@ -81,16 +82,21 @@ export default function CommunityPage() {
       getUserProfile(firestore, user.uid).then(setUserProfile);
     }
   }, [user, firestore]);
+  
+  useEffect(() => {
+    if (userProfile && allUsers.length > 0) {
+      const followed = allUsers.filter(u => userProfile.following?.includes(u.id!));
+      setFollowedUsers(followed);
+    }
+  }, [userProfile, allUsers]);
 
   // Fuzzy Search Logic
   useEffect(() => {
-    console.log(`Search term: "${searchTerm}"`);
     const lowercasedTerm = searchTerm.toLowerCase();
     
     if (!lowercasedTerm) {
       setFilteredEntries(allEntries);
       setFilteredUsers([]);
-      console.log('Search term empty, showing all entries.');
       return;
     }
 
@@ -99,7 +105,6 @@ export default function CommunityPage() {
       entry.content.toLowerCase().includes(lowercasedTerm) ||
       entry.authorName.toLowerCase().includes(lowercasedTerm)
     );
-    setFilteredEntries(entryResults);
     
     let userResults: UserProfile[] = [];
     if (user) {
@@ -109,10 +114,9 @@ export default function CommunityPage() {
             const bioMatch = u.bio ? u.bio.toLowerCase().includes(lowercasedTerm) : false;
             return nameMatch || bioMatch;
         });
-        setFilteredUsers(userResults);
     }
-    
-    console.log('Search Results:', { filteredUsers: userResults, filteredEntries: entryResults });
+    setFilteredEntries(entryResults);
+    setFilteredUsers(userResults);
 
   }, [searchTerm, allEntries, allUsers, user]);
 
@@ -135,6 +139,7 @@ export default function CommunityPage() {
     const newLikes = isLiked ? arrayRemove(userId) : arrayUnion(userId);
     const newLikeCount = isLiked ? increment(-1) : increment(1);
 
+    // Optimistic update for the dialog
     setSelectedEntry(prev => {
       if (!prev) return null;
       const currentLikes = prev.likes || [];
@@ -146,11 +151,17 @@ export default function CommunityPage() {
       };
     });
     
-    setAllEntries(prev => prev.map(e => e.id === entryId ? {
-      ...e,
-      likes: isLiked ? (e.likes || []).filter(id => id !== userId) : [...(e.likes || []), userId],
-      likeCount: (e.likeCount || 0) + (isLiked ? -1 : 1)
-    } : e));
+    // Optimistic update for the card in the feed
+    setAllEntries(prev => prev.map(e => {
+        if (e.id !== entryId) return e;
+        const currentLikes = e.likes || [];
+        const updatedLikes = isLiked ? currentLikes.filter(id => id !== userId) : [...currentLikes, userId];
+        return {
+            ...e,
+            likes: updatedLikes,
+            likeCount: (e.likeCount || 0) + (isLiked ? -1 : 1),
+        };
+    }));
 
     await updateJournalEntry(firestore, entryId, {
       likes: newLikes,
@@ -158,18 +169,27 @@ export default function CommunityPage() {
     });
   };
   
-  const handleFollow = async (authorId: string) => {
+  const handleFollowToggle = async (targetUserId: string) => {
     if (!user || !firestore) return;
-    await followUser(firestore, user.uid, authorId);
-    setUserProfile(prev => prev ? {...prev, following: [...(prev.following || []), authorId]} : null);
-    toast({ title: 'User Followed' });
-  };
-  
-  const handleUnfollow = async (authorId: string) => {
-    if (!user || !firestore) return;
-    await unfollowUser(firestore, user.uid, authorId);
-    setUserProfile(prev => prev ? {...prev, following: (prev.following || []).filter(id => id !== authorId)} : null);
-    toast({ title: 'User Unfollowed' });
+    const currentlyFollowing = isFollowing(targetUserId);
+
+    // Optimistic update
+    setUserProfile(prev => {
+      if (!prev) return null;
+      const currentFollowing = prev.following || [];
+      const newFollowing = currentlyFollowing 
+        ? currentFollowing.filter(id => id !== targetUserId)
+        : [...currentFollowing, targetUserId];
+      return { ...prev, following: newFollowing };
+    });
+    
+    if (currentlyFollowing) {
+      await unfollowUser(firestore, user.uid, targetUserId);
+      toast({ title: 'User Unfollowed' });
+    } else {
+      await followUser(firestore, user.uid, targetUserId);
+      toast({ title: 'User Followed' });
+    }
   };
   
   const isFollowing = (authorId: string) => userProfile?.following?.includes(authorId);
@@ -236,7 +256,7 @@ export default function CommunityPage() {
                                   key={profile.id}
                                   profile={profile}
                                   isFollowing={isFollowing(profile.id!)}
-                                  onFollowToggle={() => isFollowing(profile.id!) ? handleUnfollow(profile.id!) : handleFollow(profile.id!)}
+                                  onFollowToggle={() => handleFollowToggle(profile.id!)}
                                 />
                               ))}
                             </div>
@@ -254,7 +274,7 @@ export default function CommunityPage() {
                                       showAuthor={true}
                                       user={user}
                                       isFollowing={isFollowing(entry.authorId)}
-                                      onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
+                                      onFollowToggle={() => handleFollowToggle(entry.authorId)}
                                     />
                                 ))}
                              </div>
@@ -276,31 +296,62 @@ export default function CommunityPage() {
       </AnimatePresence>
 
       <div className={cn("transition-opacity", showSearchResults && 'pointer-events-none opacity-0')}>
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-        ) : allEntries.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {allEntries.map(entry => (
-                  <JournalCard
-                  key={entry.id}
-                  entry={entry}
-                  onSelect={handleSelectEntry}
-                  showAuthor={true}
-                  user={user}
-                  isFollowing={isFollowing(entry.authorId)}
-                  onFollowToggle={() => isFollowing(entry.authorId) ? handleUnfollow(entry.authorId) : handleFollow(entry.authorId)}
-                  />
-              ))}
-          </div>
-        ) : (
-            <div className="col-span-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64">
-              <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
-              <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
-            </div>
-          )
-        }
+        <Tabs defaultValue="feed">
+          <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+            <TabsTrigger value="feed">Community Feed</TabsTrigger>
+            <TabsTrigger value="following">Following</TabsTrigger>
+          </TabsList>
+          <TabsContent value="feed" className="mt-6">
+            {loading ? (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+            ) : allEntries.length > 0 ? (
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {allEntries.map(entry => (
+                      <JournalCard
+                      key={entry.id}
+                      entry={entry}
+                      onSelect={handleSelectEntry}
+                      showAuthor={true}
+                      user={user}
+                      isFollowing={isFollowing(entry.authorId)}
+                      onFollowToggle={() => handleFollowToggle(entry.authorId)}
+                      />
+                  ))}
+              </div>
+            ) : (
+                <div className="col-span-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64 mt-6">
+                  <p className="text-lg font-medium text-muted-foreground">No public journals yet.</p>
+                  <p className="text-sm text-muted-foreground">Be the first to share your journey!</p>
+                </div>
+              )
+            }
+          </TabsContent>
+          <TabsContent value="following" className="mt-6">
+            {loading ? (
+                <div className="flex justify-center items-center h-64">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+            ) : followedUsers.length > 0 ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {followedUsers.map(profile => (
+                      <UserCard
+                        key={profile.id}
+                        profile={profile}
+                        isFollowing={isFollowing(profile.id!)}
+                        onFollowToggle={() => handleFollowToggle(profile.id!)}
+                      />
+                  ))}
+                </div>
+            ) : (
+                <div className="col-span-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed rounded-lg h-64 mt-6">
+                  <p className="text-lg font-medium text-muted-foreground">You are not following anyone yet.</p>
+                  <p className="text-sm text-muted-foreground">Find users to follow in the community feed or via search.</p>
+                </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <Dialog open={!!selectedEntry} onOpenChange={isOpen => !isOpen && handleCloseDialog()}>
@@ -350,3 +401,5 @@ export default function CommunityPage() {
     </PageShell>
   );
 }
+
+    
