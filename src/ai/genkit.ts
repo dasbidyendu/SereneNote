@@ -1,9 +1,9 @@
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
-import {dotprompt} from '@genkit-ai/dotprompt';
+import {ai} from '@genkit-ai/ai';
 
-export const ai = genkit({
-  plugins: [googleAI(), dotprompt()],
+export const ai_ = genkit({
+  plugins: [googleAI(), ai()],
   logLevel: 'debug',
   enableTracingAndMetrics: true,
 });
