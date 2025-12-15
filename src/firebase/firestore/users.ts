@@ -1,6 +1,6 @@
 
 'use client';
-import { doc, getDoc, setDoc, Firestore, updateDoc, arrayUnion, arrayRemove, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, Firestore, updateDoc, arrayUnion, arrayRemove, collection, getDocs, DocumentData } from 'firebase/firestore';
 
 export interface UserProfile {
   id?: string;
@@ -26,19 +26,10 @@ export async function getUserProfile(db: Firestore, userId: string): Promise<Use
 export async function setUserProfile(db: Firestore, userId: string, data: Partial<UserProfile>) {
   const docRef = doc(db, 'users', userId);
   
-  // Get the existing document
-  const docSnap = await getDoc(docRef);
-  const existingData = docSnap.exists() ? docSnap.data() : {};
-
-  // Merge existing data with new data, ensuring arrays are preserved
-  const newData = {
-      following: [], 
-      followers: [], 
-      ...existingData,
-      ...data 
-  };
-  
-  await setDoc(docRef, newData);
+  // Use setDoc with { merge: true } to create the document if it doesn't exist,
+  // or merge the new data with the existing document without overwriting other fields.
+  // This is much safer than manually getting and merging.
+  await setDoc(docRef, data, { merge: true });
 }
 
 
