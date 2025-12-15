@@ -50,9 +50,9 @@ export function UserCard({
                   <AvatarImage src={profile.photoURL} data-ai-hint="person portrait" />
                   <AvatarFallback>{getInitials(profile.name)}</AvatarFallback>
                 </Avatar>
-                <div>
-                    <CardTitle className="font-headline text-lg">{profile.name}</CardTitle>
-                    <CardDescription>{profile.email}</CardDescription>
+                <div className="overflow-hidden">
+                    <CardTitle className="font-headline text-lg truncate">{profile.name}</CardTitle>
+                    <CardDescription className="truncate">{profile.email}</CardDescription>
                 </div>
             </div>
         </CardHeader>
