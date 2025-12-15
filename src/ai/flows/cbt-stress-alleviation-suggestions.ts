@@ -29,9 +29,9 @@ const CbtStressAlleviationOutputSchema = z.object({
   guidedMeditation: z
     .string()
     .describe('A short, 2-3 paragraph guided meditation script to help calm the user.'),
-  imagePrompt: z
+  reflectiveExercise: z
     .string()
-    .describe('A DALL-E prompt for a calming, serene, photorealistic image that relates to the user\'s entry or mood.'),
+    .describe('A short, simple, text-based reflective exercise or game to help the user reframe their thoughts.'),
 });
 export type CbtStressAlleviationOutput = z.infer<typeof CbtStressAlleviationOutputSchema>;
 
@@ -43,7 +43,7 @@ export async function cbtStressAlleviationSuggestions(
 
 const prompt = ai_.definePrompt({
   name: 'cbtStressAlleviationPrompt',
-  model: 'googleai/gemini-pro',
+  model: 'googleai/gemini-2.5-flash-lite',
   input: {schema: CbtStressAlleviationInputSchema},
   output: {schema: CbtStressAlleviationOutputSchema},
   prompt: `You are a mental health expert providing Cognitive Behavioral Therapy (CBT) based suggestions for stress alleviation.
@@ -51,7 +51,7 @@ const prompt = ai_.definePrompt({
   Based on the user's journal entry and their mood, provide:
   1. Tailored, actionable suggestions.
   2. A short, calming, 2-3 paragraph guided meditation script.
-  3. A prompt for a text-to-image model to generate a serene, calming, photorealistic image that is relevant to the journal entry.
+  3. A short, simple, text-based reflective exercise (like a "three good things" list, or a simple reframing question) to help the user actively engage with their thoughts.
 
   Journal Entry: {{{journalEntry}}}
   Mood: {{{mood}}}

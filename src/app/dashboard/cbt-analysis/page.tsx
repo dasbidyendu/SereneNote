@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import Image from 'next/image';
 import { PageShell } from '@/components/page-shell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Sparkles, Wand2, BookOpenCheck, BrainCircuit, Leaf } from 'lucide-react';
+import { Loader2, Sparkles, BookOpenCheck, BrainCircuit, Leaf, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
 import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviation-suggestions';
-import { generateImage } from '@/ai/flows/generate-image-flow';
 import { Timestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,7 +23,7 @@ interface AnalysisData {
   };
   suggestions: string;
   guidedMeditation: string;
-  calmingImageUrl: string;
+  reflectiveExercise: string;
 }
 
 export default function CbtAnalysisPage() {
@@ -38,7 +36,6 @@ export default function CbtAnalysisPage() {
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisStep, setAnalysisStep] = useState('');
 
   useEffect(() => {
     if (user && firestore) {
@@ -57,15 +54,9 @@ export default function CbtAnalysisPage() {
     setAnalysis(null);
     setIsAnalyzing(true);
     try {
-      setAnalysisStep('Thinking...');
-      const suggestionsResult = await cbtStressAlleviationSuggestions({
+      const result = await cbtStressAlleviationSuggestions({
         journalEntry: entry.content,
         mood: entry.mood,
-      });
-
-      setAnalysisStep('Creating calming image...');
-      const imageResult = await generateImage({
-        prompt: suggestionsResult.imagePrompt,
       });
 
       setAnalysis({
@@ -74,16 +65,15 @@ export default function CbtAnalysisPage() {
           mood: entry.mood,
           title: entry.title,
         },
-        suggestions: suggestionsResult.suggestions,
-        guidedMeditation: suggestionsResult.guidedMeditation,
-        calmingImageUrl: imageResult.imageDataUri,
+        suggestions: result.suggestions,
+        guidedMeditation: result.guidedMeditation,
+        reflectiveExercise: result.reflectiveExercise,
       });
     } catch (error) {
       console.error('Failed to get analysis', error);
       // Optionally show a toast message here
     } finally {
       setIsAnalyzing(false);
-      setAnalysisStep('');
     }
   };
 
@@ -102,13 +92,13 @@ export default function CbtAnalysisPage() {
             <div>
               <h1 className="text-3xl font-bold font-headline">Your CBT Analysis Toolkit</h1>
               <p className="text-muted-foreground">
-                Select an entry for AI insights, a guided meditation, and a unique calming image.
+                Select an entry for AI insights, a guided meditation, and a reflective exercise.
               </p>
             </div>
         </div>
 
-        <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-8 h-[calc(100vh-12rem)]">
-          <div className="md:col-span-1 lg:col-span-1 h-full">
+        <div className="grid md:grid-cols-3 gap-8 h-[calc(100vh-12rem)]">
+          <div className="md:col-span-1 h-full">
             <Card className="h-full flex flex-col">
               <CardHeader>
                 <CardTitle className="font-headline text-xl flex items-center gap-2">
@@ -151,7 +141,7 @@ export default function CbtAnalysisPage() {
             </Card>
           </div>
           
-          <div className="md:col-span-2 lg:col-span-3 h-full">
+          <div className="md:col-span-2 h-full">
              <Card className="h-full overflow-hidden">
                <AnimatePresence mode="wait">
                 {isAnalyzing ? (
@@ -163,7 +153,7 @@ export default function CbtAnalysisPage() {
                       className="flex flex-col items-center justify-center h-full text-center p-4"
                     >
                         <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-                        <p className="text-muted-foreground font-semibold">{analysisStep}</p>
+                        <p className="text-muted-foreground font-semibold">Analyzing your thoughts...</p>
                         <p className="text-sm text-muted-foreground">This can take a moment, please be patient.</p>
                     </motion.div>
                 ) : analysis && selectedEntry ? (
@@ -172,48 +162,40 @@ export default function CbtAnalysisPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        className="grid lg:grid-cols-2 gap-x-6 h-full"
+                        className="flex flex-col p-6 h-full"
                     >
-                        <div className="flex flex-col p-6 h-full">
+                        <ScrollArea className="pr-4">
                            <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
                              <Sparkles className="h-6 w-6 text-primary" />
                              Cognitive Reframing
                            </h3>
                            <p className="text-sm text-muted-foreground mb-4">Actionable suggestions based on your entry.</p>
-                            <ScrollArea className="flex-grow pr-4 mb-4">
-                             <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body">
+                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body mb-6">
                                {analysis.suggestions}
-                             </div>
-                           </ScrollArea>
-                           <Separator className="my-4"/>
+                           </div>
+
+                           <Separator className="my-6"/>
+
                            <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
                              <Leaf className="h-6 w-6 text-primary" />
                              Guided Meditation
                            </h3>
                            <p className="text-sm text-muted-foreground mb-4">A short meditation to bring you to the present.</p>
-                            <ScrollArea className="flex-grow pr-4">
-                             <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body">
+                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body mb-6">
                                {analysis.guidedMeditation}
-                             </div>
-                           </ScrollArea>
-                         </div>
+                           </div>
 
-                        <div className="relative h-full w-full overflow-hidden">
-                           <Image 
-                              src={analysis.calmingImageUrl}
-                              alt="AI-generated calming image"
-                              fill
-                              className="object-cover"
-                              data-ai-hint="calming serene"
-                           />
-                            <div className="absolute bottom-4 left-4 right-4 bg-black/50 p-4 rounded-lg backdrop-blur-sm text-white">
-                                <h3 className="font-headline text-lg mb-2">Your Original Entry</h3>
-                                <p className="text-sm font-semibold">{analysis.entry.title}</p>
-                                <p className="text-xs text-white/80">Mood: {analysis.entry.mood}</p>
-                                <Separator className="my-2 bg-white/20"/>
-                                <p className="text-sm text-white/80 italic line-clamp-2">"{analysis.entry.journalEntry}"</p>
-                            </div>
-                        </div>
+                           <Separator className="my-6"/>
+
+                           <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
+                             <Gamepad2 className="h-6 w-6 text-primary" />
+                             Reflective Exercise
+                           </h3>
+                           <p className="text-sm text-muted-foreground mb-4">An interactive exercise to engage with your thoughts.</p>
+                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body">
+                               {analysis.reflectiveExercise}
+                           </div>
+                        </ScrollArea>
                     </motion.div>
                 ) : (
                     <motion.div
@@ -223,7 +205,7 @@ export default function CbtAnalysisPage() {
                         exit={{ opacity: 0 }}
                         className="flex flex-col items-center justify-center h-full text-center"
                     >
-                        <Wand2 className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                        <BrainCircuit className="h-16 w-16 text-muted-foreground/50 mb-4" />
                         <h2 className="text-xl font-bold">Ready for Analysis</h2>
                         <p className="text-muted-foreground">
                             Please select a journal entry from the list to begin.
