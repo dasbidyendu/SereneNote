@@ -75,20 +75,16 @@ export function ChatInput({
     let newParts = [...parts];
 
     if (textBefore) {
-      const lastPart = newParts.length > 0 ? newParts[newParts.length - 1] : null;
-      if (lastPart && lastPart.type === 'text') {
-        // Append to existing last text part
-        lastPart.text = `${lastPart.text} ${textBefore}`;
-      } else {
-        // Add new text part
         newParts.push({ type: 'text', text: textBefore });
-      }
     }
     
     newParts.push(newPart);
     setParts(newParts);
     
     setInputValue('');
+    if (inputRef.current) {
+        inputRef.current.textContent = '';
+    }
     setActiveTrigger(null);
     setPopoverOpen(false);
     setSearchTerm('');
@@ -101,7 +97,8 @@ export function ChatInput({
       e.preventDefault();
       handleSubmit();
     }
-     if (e.key === 'Backspace' && inputValue === '' && parts.length > 0) {
+     // Only remove the last part if the current text input is empty
+     if (e.key === 'Backspace' && (e.currentTarget.textContent === '') && parts.length > 0) {
         e.preventDefault();
         // Remove the last part
         setParts(parts.slice(0, -1));
@@ -111,13 +108,7 @@ export function ChatInput({
   const handleSubmit = () => {
     let finalParts = [...parts];
     if (inputValue.trim()) {
-      const trimmedText = inputValue.trim();
-      const lastPart = finalParts.length > 0 ? finalParts[finalParts.length - 1] : null;
-      if (lastPart && lastPart.type === 'text') {
-        lastPart.text += ` ${trimmedText}`;
-      } else {
-        finalParts.push({ type: 'text', text: trimmedText });
-      }
+      finalParts.push({ type: 'text', text: inputValue.trim() });
     }
     if (finalParts.length > 0) {
       onSendMessage(finalParts);
@@ -194,4 +185,3 @@ export function ChatInput({
     </Popover>
   );
 }
-
