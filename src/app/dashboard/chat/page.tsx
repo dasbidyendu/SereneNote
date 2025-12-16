@@ -253,7 +253,7 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="flex flex-col h-full bg-secondary/30">
+        <div className="h-[calc(100vh-5.5rem)] overflow-y-scroll bg-secondary/30">
             {selectedChannel ? (
               <div className="grid grid-rows-[auto_1fr_auto] h-full">
                 <header className="p-4 border-b bg-card shadow-sm z-10">
