@@ -11,6 +11,8 @@ import { ArrowRight, BarChart, Bot, Users, Heart, Star, MessageSquare, CheckCirc
 import { Logo } from '@/components/logo';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
 function Header() {
   return (
@@ -65,6 +67,61 @@ const cardVariants = (delay: number) => ({
     }
   }
 });
+
+function ContactForm() {
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+    const [message, setMessage] = useState('');
+    const { toast } = useToast();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Here you would typically send the data to a server
+        console.log({ name, email, message });
+        
+        toast({
+            title: "Message Sent!",
+            description: "Thank you for reaching out. We'll get back to you soon.",
+        });
+
+        // Clear form
+        setName('');
+        setEmail('');
+        setMessage('');
+    };
+
+    return (
+         <Card className="max-w-xl mx-auto p-6 bg-card/60 backdrop-blur-sm border-primary/20">
+            <CardContent className="p-0">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <Input 
+                    type="text" 
+                    placeholder="Your Name" 
+                    value={name} 
+                    onChange={(e) => setName(e.target.value)} 
+                    required 
+                />
+                <Input 
+                    type="email" 
+                    placeholder="Your Email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                />
+                <Textarea 
+                    placeholder="Your Message" 
+                    rows={5}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
+                />
+                <Button type="submit" className="w-full">Send Message</Button>
+            </form>
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export default function LandingPage() {
   const features = [
@@ -310,16 +367,7 @@ export default function LandingPage() {
                 Have questions or feedback? We'd love to hear from you.
               </p>
             </div>
-            <Card className="max-w-xl mx-auto p-6 bg-card/60 backdrop-blur-sm border-primary/20">
-              <CardContent className="p-0">
-                <form className="space-y-4">
-                  <Input type="text" placeholder="Your Name" />
-                  <Input type="email" placeholder="Your Email" />
-                  <Textarea placeholder="Your Message" rows={5} />
-                  <Button type="submit" className="w-full">Send Message</Button>
-                </form>
-              </CardContent>
-            </Card>
+            <ContactForm />
           </div>
         </motion.section>
 
@@ -328,3 +376,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    

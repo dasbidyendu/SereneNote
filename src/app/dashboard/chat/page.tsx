@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -254,13 +255,13 @@ export default function CommunityChatPage() {
         {/* Chat Panel */}
         <div className="flex flex-col h-full bg-secondary/30">
             {selectedChannel ? (
-              <>
+              <div className="grid grid-rows-[auto_1fr_auto] h-full">
                 <header className="p-4 border-b bg-card shadow-sm z-10">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="overflow-y-auto p-4 bg-muted/40">
                   <div className="space-y-4">
                       {messages.map((msg) => (
                           <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -312,7 +313,7 @@ export default function CommunityChatPage() {
                     disabled={!user}
                   />
                 </footer>
-              </>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -396,3 +397,5 @@ export default function CommunityChatPage() {
     </div>
   );
 }
+
+    
