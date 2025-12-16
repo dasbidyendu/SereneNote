@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, MessageSquare, PlusCircle, Send } from 'lucide-react';
+import { Loader2, MessageSquare, PlusCircle, Send, Users } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -44,7 +44,7 @@ const NewChannelSchema = z.object({
 type NewChannelFormValues = z.infer<typeof NewChannelSchema>;
 
 export default function CommunityChatPage() {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const [firestore, setFirestore] = useState<Firestore | null>(null);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -70,19 +70,16 @@ export default function CommunityChatPage() {
   }, [user]);
 
   useEffect(() => {
-    if (!firestore) return;
-    
-    setLoadingChannels(true);
-    getChannels(firestore)
-        .then(fetchedChannels => {
-            setChannels(fetchedChannels);
-            if(fetchedChannels.length > 0) {
-                setSelectedChannel(fetchedChannels[0]);
-            }
-        })
-        .catch(error => console.error("Error fetching channels:", error))
-        .finally(() => setLoadingChannels(false));
-  }, [firestore]);
+    if (user && firestore) {
+        setLoadingChannels(true);
+        getChannels(firestore)
+            .then(fetchedChannels => {
+                setChannels(fetchedChannels);
+            })
+            .catch(error => console.error("Error fetching channels:", error))
+            .finally(() => setLoadingChannels(false));
+    }
+  }, [user, firestore]);
 
   useEffect(() => {
     if (!firestore || !selectedChannel?.id) {
@@ -110,6 +107,8 @@ export default function CommunityChatPage() {
             description: values.description,
             creatorId: user.uid,
             createdAt: new Date(),
+            members: [user.uid],
+            memberCount: 1,
         };
         setChannels(prev => [newChannel, ...prev]);
         setSelectedChannel(newChannel);
@@ -131,6 +130,22 @@ export default function CommunityChatPage() {
     setMessageContent('');
     try {
         await sendMessage(firestore, user, selectedChannel.id, content);
+        
+        // Optimistically update member count if user is not already a member
+        const channel = channels.find(c => c.id === selectedChannel.id);
+        if (channel && !channel.members?.includes(user.uid)) {
+            const updatedChannels = channels.map(c => 
+                c.id === selectedChannel.id 
+                ? {
+                    ...c, 
+                    memberCount: (c.memberCount || 0) + 1, 
+                    members: [...(c.members || []), user.uid]
+                  } 
+                : c
+            );
+            setChannels(updatedChannels);
+        }
+
     } catch (error) {
         toast({ variant: 'destructive', title: 'Message failed to send' });
         setMessageContent(content); // Restore content if send fails
@@ -138,6 +153,16 @@ export default function CommunityChatPage() {
   };
   
   const getInitials = (name: string) => name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  if (userLoading) {
+      return (
+          <PageShell>
+              <div className="flex justify-center items-center h-full">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+              </div>
+          </PageShell>
+      )
+  }
 
   return (
     <PageShell>
@@ -178,8 +203,14 @@ export default function CommunityChatPage() {
                                         : "hover:bg-muted/50 border-transparent"
                                 )}
                             >
-                                <p className="font-semibold text-sm"># {channel.name}</p>
-                                {channel.description && <p className="text-xs text-muted-foreground line-clamp-1">{channel.description}</p>}
+                                <div className="flex justify-between items-center">
+                                    <p className="font-semibold text-sm"># {channel.name}</p>
+                                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                        <Users className="h-3 w-3" />
+                                        {channel.memberCount || 0}
+                                    </div>
+                                </div>
+                                {channel.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{channel.description}</p>}
                             </button>
                         ))}
                     </div>
@@ -219,8 +250,8 @@ export default function CommunityChatPage() {
                                             </div>
                                              {msg.authorId === user?.uid && (
                                                 <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={msg.authorPhotoURL} />
-                                                    <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
+                                                    <AvatarImage src={user.photoURL || ''} />
+                                                    <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
                                                 </Avatar>
                                             )}
                                         </div>
@@ -244,10 +275,12 @@ export default function CommunityChatPage() {
                         </CardFooter>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                        <MessageSquare className="h-16 w-16 text-muted-foreground/50 mb-4" />
-                        <h2 className="text-xl font-bold">Select a channel</h2>
-                        <p className="text-muted-foreground">Join a conversation or create a new channel to get started.</p>
+                    <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                        <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                        <h2 className="text-xl font-bold font-headline">Welcome to the Community Chat</h2>
+                        <p className="text-muted-foreground max-w-sm">
+                            Select a channel to view the conversation, or create a new one to get started. Your first message in a channel makes you a member.
+                        </p>
                     </div>
                 )}
             </Card>

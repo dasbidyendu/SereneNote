@@ -142,6 +142,17 @@
         "createdAt": {
           "type": "object",
           "description": "The timestamp when the channel was created."
+        },
+        "members": {
+          "type": "array",
+          "description": "A list of user IDs who are members of this channel.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "memberCount": {
+            "type": "number",
+            "description": "The number of members in the channel."
         }
       },
       "required": [

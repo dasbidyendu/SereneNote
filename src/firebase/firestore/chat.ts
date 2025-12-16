@@ -13,6 +13,11 @@ import {
   WithFieldValue,
   Timestamp,
   serverTimestamp,
+  doc,
+  runTransaction,
+  arrayUnion,
+  increment,
+  getDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -24,6 +29,8 @@ export interface Channel {
   description?: string;
   creatorId: string;
   createdAt: Timestamp | object;
+  members?: string[];
+  memberCount?: number;
 }
 
 export interface ChatMessage extends DocumentData {
@@ -40,6 +47,8 @@ export async function createChannel(db: Firestore, user: User, channelData: { na
       ...channelData,
       creatorId: user.uid,
       createdAt: serverTimestamp(),
+      members: [user.uid],
+      memberCount: 1,
     };
 
     const channelsCollection = collection(db, 'channels');
@@ -60,7 +69,8 @@ export async function createChannel(db: Firestore, user: User, channelData: { na
 
 export async function getChannels(db: Firestore): Promise<Channel[]> {
   const channelsCollection = collection(db, 'channels');
-  const q = query(channelsCollection, orderBy('createdAt', 'desc'));
+  // Sort by memberCount descending, then by creation date descending as a tie-breaker.
+  const q = query(channelsCollection, orderBy('memberCount', 'desc'), orderBy('createdAt', 'desc'));
   const querySnapshot = await getDocs(q);
   const channels: Channel[] = [];
   querySnapshot.forEach((doc) => {
@@ -105,13 +115,34 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
         authorPhotoURL: user.photoURL || '',
         createdAt: serverTimestamp(),
     };
+    
+    const channelRef = doc(db, 'channels', channelId);
+    const messagesCollection = collection(channelRef, 'messages');
 
-    const messagesCollection = collection(db, 'channels', channelId, 'messages');
+    try {
+        await runTransaction(db, async (transaction) => {
+            const channelDoc = await transaction.get(channelRef);
+            if (!channelDoc.exists()) {
+                throw new Error("Channel does not exist!");
+            }
 
-    return addDoc(messagesCollection, message)
-      .catch(async (serverError) => {
-        console.error("Error sending message: ", serverError);
-        const permissionError = new FirestorePermissionError({
+            // Add the new message
+            transaction.set(doc(messagesCollection), message);
+
+            const channelData = channelDoc.data();
+            const members = channelData.members || [];
+            
+            // If user is not already a member, add them and increment count
+            if (!members.includes(user.uid)) {
+                transaction.update(channelRef, {
+                    members: arrayUnion(user.uid),
+                    memberCount: increment(1)
+                });
+            }
+        });
+    } catch (e: any) {
+        console.error("Transaction failed: ", e);
+         const permissionError = new FirestorePermissionError({
           path: messagesCollection.path,
           operation: 'create',
           requestResourceData: message,
@@ -119,5 +150,5 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
         });
         errorEmitter.emit('permission-error', permissionError);
         throw new Error('Failed to send message.');
-      });
+    }
 }
