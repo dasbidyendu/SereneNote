@@ -11,7 +11,7 @@ import { ArrowRight, BarChart, Bot, Users, Heart, Star, MessageSquare, CheckCirc
 import { Logo } from '@/components/logo';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 function Header() {
@@ -73,10 +73,14 @@ function ContactForm() {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
     const { toast } = useToast();
+    const [isClient, setIsClient] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+    }, []);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Here you would typically send the data to a server
         console.log({ name, email, message });
         
         toast({
@@ -84,11 +88,14 @@ function ContactForm() {
             description: "Thank you for reaching out. We'll get back to you soon.",
         });
 
-        // Clear form
         setName('');
         setEmail('');
         setMessage('');
     };
+    
+    if (!isClient) {
+        return null;
+    }
 
     return (
          <Card className="max-w-xl mx-auto p-6 bg-card/60 backdrop-blur-sm border-primary/20">
@@ -376,5 +383,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
