@@ -43,7 +43,7 @@ import {
 } from '@/firebase/firestore/chat';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
-import { Timestamp, type Firestore } from 'firebase/firestore';
+import { Timestamp, type Firestore, getDoc } from 'firebase/firestore';
 import { ChatInput, MentionData } from '@/components/chat-input';
 import { getAllUsers, UserProfile } from '@/firebase/firestore/users';
 import { getPublicJournalEntries, JournalEntry, updateJournalEntry } from '@/firebase/firestore/journals';
