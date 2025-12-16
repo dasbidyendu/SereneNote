@@ -1,0 +1,242 @@
+'use client';
+
+import { useEffect, useState, useMemo } from 'react';
+import { PageShell } from '@/components/page-shell';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Loader2, Sparkles, BookOpenCheck, BrainCircuit, Leaf, Gamepad2, Mic } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Separator } from '@/components/ui/separator';
+import { useUser } from '@/hooks/use-user';
+import { getFirebaseServices } from '@/firebase/client';
+import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
+import { cbtWithAudio } from '@/ai/flows/cbt-with-audio-flow';
+import { Timestamp, type Firestore } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface AnalysisData {
+  entry: {
+    journalEntry: string;
+    mood: string;
+    title: string;
+  };
+  suggestions: string;
+  guidedMeditation: string;
+  reflectiveExercise: string;
+  meditationAudioUri: string;
+}
+
+export default function CbtAnalysisPage() {
+  const { user } = useUser();
+  const [firestore, setFirestore] = useState<Firestore | null>(null);
+
+  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [loadingEntries, setLoadingEntries] = useState(true);
+
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState('');
+  
+  useEffect(() => {
+    if (user) {
+      const { firestore: fs } = getFirebaseServices();
+      setFirestore(fs);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && firestore) {
+      setLoadingEntries(true);
+      getAllUserJournalEntries(firestore, user.uid)
+        .then(setEntries)
+        .catch(console.error)
+        .finally(() => setLoadingEntries(false));
+    }
+  }, [user, firestore]);
+
+  const handleSelectEntry = async (entry: JournalEntry) => {
+    if (isAnalyzing) return;
+    
+    setSelectedEntry(entry);
+    setAnalysis(null);
+    setIsAnalyzing(true);
+    try {
+      setAnalysisStep('Generating AI analysis and audio...');
+      const result = await cbtWithAudio({
+        journalEntry: entry.content,
+        mood: entry.mood,
+      });
+
+      setAnalysis({
+        entry: {
+          journalEntry: entry.content,
+          mood: entry.mood,
+          title: entry.title,
+        },
+        suggestions: result.suggestions,
+        guidedMeditation: result.guidedMeditation,
+        reflectiveExercise: result.reflectiveExercise,
+        meditationAudioUri: result.meditationAudioUri,
+      });
+
+    } catch (error) {
+      console.error('Failed to get analysis', error);
+      // Optionally show a toast message here
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisStep('');
+    }
+  };
+
+  const sortedEntries = useMemo(() => {
+    return entries.sort((a, b) => {
+      const dateA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0;
+      const dateB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0;
+      return dateB - dateA;
+    });
+  }, [entries]);
+
+  return (
+      <PageShell>
+        <div className="flex items-center gap-4 mb-4">
+            <BrainCircuit className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-3xl font-bold font-headline">Your CBT Analysis Toolkit</h1>
+              <p className="text-muted-foreground">
+                Select an entry for AI insights, a guided meditation, and a reflective exercise.
+              </p>
+            </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8 h-[calc(100vh-12rem)]">
+          <div className="md:col-span-1 h-full">
+            <Card className="h-full flex flex-col">
+              <CardHeader>
+                <CardTitle className="font-headline text-xl flex items-center gap-2">
+                  <BookOpenCheck className="h-5 w-5" />
+                  Your Journal Entries
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-2 flex-grow overflow-hidden">
+                <ScrollArea className="h-full pr-4">
+                  {loadingEntries ? (
+                    <div className="flex items-center justify-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : sortedEntries.length > 0 ? (
+                    <div className="space-y-2">
+                      {sortedEntries.map(entry => (
+                        <button 
+                          key={entry.id} 
+                          onClick={() => handleSelectEntry(entry)}
+                          disabled={isAnalyzing}
+                          className={cn(
+                            "w-full text-left p-3 rounded-md border transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+                            selectedEntry?.id === entry.id 
+                              ? "bg-primary/20 border-primary/50" 
+                              : "hover:bg-muted/50 border-transparent"
+                          )}
+                        >
+                          <p className="font-semibold text-sm line-clamp-1">{entry.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.createdAt instanceof Timestamp ? entry.createdAt.toDate().toLocaleDateString() : 'New'} - {entry.mood}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground p-4 text-center">You have no journal entries to analyze yet.</p>
+                  )}
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="md:col-span-2 h-full">
+             <Card className="h-full overflow-hidden">
+               <AnimatePresence mode="wait">
+                {isAnalyzing ? (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="flex flex-col items-center justify-center h-full text-center p-4"
+                    >
+                        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                        <p className="text-muted-foreground font-semibold">{analysisStep}</p>
+                        <p className="text-sm text-muted-foreground">This can take a moment, please be patient.</p>
+                    </motion.div>
+                ) : analysis && selectedEntry ? (
+                    <motion.div 
+                        key="analysis"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="flex flex-col p-6 h-full"
+                    >
+                        <ScrollArea className="pr-4">
+                           <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
+                             <Sparkles className="h-6 w-6 text-primary" />
+                             Cognitive Reframing
+                           </h3>
+                           <p className="text-sm text-muted-foreground mb-4">Actionable suggestions based on your entry.</p>
+                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body mb-6">
+                               {analysis.suggestions}
+                           </div>
+
+                           <Separator className="my-6"/>
+
+                           <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
+                             <Leaf className="h-6 w-6 text-primary" />
+                             Guided Meditation
+                           </h3>
+                           <p className="text-sm text-muted-foreground mb-4">A short meditation to bring you to the present.</p>
+                            {analysis.meditationAudioUri ? (
+                                <audio controls className="w-full">
+                                    <source src={analysis.meditationAudioUri} type="audio/wav" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                            ) : (
+                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                   <Loader2 className="h-4 w-4 animate-spin"/>
+                                   <p>Audio is preparing...</p>
+                               </div>
+                            )}
+
+                           <Separator className="my-6"/>
+
+                           <h3 className="font-headline text-xl mb-2 flex items-center gap-2">
+                             <Gamepad2 className="h-6 w-6 text-primary" />
+                             Reflective Exercise
+                           </h3>
+                           <p className="text-sm text-muted-foreground mb-4">An interactive exercise to engage with your thoughts.</p>
+                           <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap font-body">
+                               {analysis.reflectiveExercise}
+                           </div>
+                        </ScrollArea>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        key="initial"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col items-center justify-center h-full text-center"
+                    >
+                        <BrainCircuit className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                        <h2 className="text-xl font-bold">Ready for Analysis</h2>
+                        <p className="text-muted-foreground">
+                            Please select a journal entry from the list to begin.
+                        </p>
+                    </motion.div>
+                )}
+                </AnimatePresence>
+             </Card>
+          </div>
+        </div>
+      </PageShell>
+  );
+}

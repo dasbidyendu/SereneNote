@@ -1,0 +1,322 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores public information about a user.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography of the user."
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Data URI of the user's profile picture."
+        },
+        "coverImage": {
+            "type": "string",
+            "description": "Data URI of the user's profile cover image."
+        },
+        "motto": {
+            "type": "string",
+            "description": "A short motto or quote for the user's profile."
+        },
+        "following": {
+          "type": "array",
+          "description": "A list of user IDs that this user is following.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "followers": {
+          "type": "array",
+          "description": "A list of user IDs that are following this user.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "email"
+      ]
+    },
+    "JournalEntry": {
+      "title": "Journal Entry",
+      "description": "Represents a single journal entry made by a user.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the journal entry."
+        },
+        "content": {
+          "type": "string",
+          "description": "The main content of the journal entry."
+        },
+        "mood": {
+          "type": "string",
+          "enum": [
+            "Happy",
+            "Calm",
+            "Sad",
+            "Anxious",
+            "Excited"
+          ],
+          "description": "The user's mood at the time of writing."
+        },
+        "isPublic": {
+          "type": "boolean",
+          "description": "Whether the entry is visible to the community."
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The ID of the user who wrote the entry."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "The name of the user who wrote the entry."
+        },
+        "authorPhotoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "The profile picture URL of the author."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The timestamp when the entry was created."
+        },
+        "likeCount": {
+          "type": "number",
+          "description": "The number of likes the entry has received."
+        },
+        "readCount": {
+          "type": "number",
+          "description": "The number of times the entry has been read."
+        },
+        "likes": {
+          "type": "array",
+          "description": "A list of user IDs who have liked the entry.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "title",
+        "content",
+        "mood",
+        "isPublic",
+        "authorId",
+        "authorName",
+        "createdAt"
+      ]
+    },
+    "Channel": {
+      "title": "Chat Channel",
+      "description": "Represents a community chat channel.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the channel."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the channel."
+        },
+        "creatorId": {
+          "type": "string",
+          "description": "The ID of the user who created the channel."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The timestamp when the channel was created."
+        },
+        "members": {
+          "type": "array",
+          "description": "A list of user IDs who are members of this channel.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "memberCount": {
+            "type": "number",
+            "description": "The number of members in the channel."
+        }
+      },
+      "required": [
+        "name",
+        "creatorId",
+        "createdAt"
+      ]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Represents a single message within a chat channel.",
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "description": "The text content of the message. Deprecated in favor of 'parts'."
+        },
+        "parts": {
+            "type": "array",
+            "description": "Structured content of the message.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": ["text", "mention", "journal"]
+                    },
+                    "text": { "type": "string" },
+                    "mention": {
+                        "type": "object",
+                        "properties": {
+                            "userId": { "type": "string" },
+                            "name": { "type": "string" }
+                        }
+                    },
+                    "journal": {
+                        "type": "object",
+                        "properties": {
+                            "id": { "type": "string" },
+                            "title": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        },
+        "authorId": {
+          "type": "string",
+          "description": "The ID of the user who sent the message."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "The display name of the message author."
+        },
+        "authorPhotoURL": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the author's profile picture."
+        },
+        "createdAt": {
+          "type": "object",
+          "description": "The timestamp when the message was sent."
+        }
+      },
+      "required": [
+        "parts",
+        "authorId",
+        "authorName",
+        "createdAt"
+      ]
+    },
+    "Notification": {
+        "title": "User Notification",
+        "description": "Represents a notification for a user, such as a mention in a chat.",
+        "type": "object",
+        "properties": {
+            "type": {
+                "type": "string",
+                "enum": ["mention"],
+                "description": "The type of notification."
+            },
+            "fromUserId": {
+                "type": "string",
+                "description": "The ID of the user who triggered the notification."
+            },
+            "fromUserName": {
+                "type": "string",
+                "description": "The name of the user who triggered the notification."
+            },
+            "fromUserPhotoURL": {
+                "type": "string",
+                "description": "The photo URL of the user who triggered the notification."
+            },
+            "channelId": {
+                "type": "string",
+                "description": "The ID of the channel where the event occurred."
+            },
+            "channelName": {
+                "type": "string",
+                "description": "The name of the channel where the event occurred."
+            },
+            "messageId": {
+                "type": "string",
+                "description": "The ID of the message related to the notification."
+            },
+            "messageSnippet": {
+                "type": "string",
+                "description": "A snippet of the message content."
+            },
+            "createdAt": {
+                "type": "object",
+                "description": "The timestamp when the notification was created."
+            },
+            "read": {
+                "type": "boolean",
+                "description": "Whether the notification has been read."
+            }
+        },
+        "required": [
+            "type",
+            "fromUserId",
+            "fromUserName",
+            "channelId",
+            "channelName",
+            "messageId",
+            "createdAt",
+            "read"
+        ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "email"
+    ]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "Stores user profile information."
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+        "schema": {
+            "$ref": "#/entities/Notification"
+        },
+        "description": "Sub-collection of notifications for a specific user."
+    },
+    "/journalEntries/{journalId}": {
+      "schema": {
+        "$ref": "#/entities/JournalEntry"
+      },
+      "description": "Collection of all journal entries from all users."
+    },
+    "/channels/{channelId}": {
+        "schema": {
+            "$ref": "#/entities/Channel"
+        },
+        "description": "Collection of all community chat channels."
+    },
+    "/channels/{channelId}/messages/{messageId}": {
+        "schema": {
+            "$ref": "#/entities/ChatMessage"
+        },
+        "description": "Sub-collection of messages for a specific chat channel."
+    }
+  }
+}

@@ -1,0 +1,68 @@
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read, list: if isSignedIn();
+      // Allow any signed-in user to update a user document.
+      // This is simplified for the follow/unfollow feature.
+      allow update, create: if isSignedIn(); 
+      allow delete: if isOwner(userId);
+
+      // Notifications sub-collection
+      match /notifications/{notificationId} {
+        // Allow reads if owner, and allow any signed-in user to create a notification
+        // (for mentions). Client-side logic will validate the content.
+        allow read, list, update: if isOwner(userId);
+        allow create: if isSignedIn();
+      }
+    }
+    
+    // JournalEntries collection
+    match /journalEntries/{journalId} {
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      
+      allow read: if isSignedIn() && (resource.data.isPublic == true || isOwner(resource.data.authorId));
+
+      allow delete: if isSignedIn() && isOwner(resource.data.authorId);
+      
+      // Simplified update rule: allow any signed-in user to update.
+      // This will allow liking and read counts to be updated by anyone.
+      // Authors can still update their own posts.
+      allow update: if isSignedIn();
+    }
+
+    // This rule is necessary to allow collection-level queries, like fetching all public journals.
+    match /journalEntries/{document=**} {
+        allow list: if isSignedIn();
+    }
+
+    // Channels collection
+    match /channels/{channelId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.creatorId == request.auth.uid;
+      // Allow any signed-in user to update a channel, for member count updates.
+      allow update: if isSignedIn();
+    }
+
+    // Messages sub-collection
+    match /channels/{channelId}/messages/{messageId} {
+      allow read, list: if isSignedIn();
+      // Allow create if user is sending the message.
+      // Channel membership is checked implicitly by the client logic when sending a message.
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+    }
+  }
+}
