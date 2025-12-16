@@ -69,8 +69,8 @@ export async function createChannel(db: Firestore, user: User, channelData: { na
 
 export async function getChannels(db: Firestore): Promise<Channel[]> {
   const channelsCollection = collection(db, 'channels');
-  // Sort by memberCount descending, then by creation date descending as a tie-breaker.
-  const q = query(channelsCollection, orderBy('memberCount', 'desc'), orderBy('createdAt', 'desc'));
+  // Sort by memberCount descending. A composite index is required for multiple orderBys.
+  const q = query(channelsCollection, orderBy('memberCount', 'desc'));
   const querySnapshot = await getDocs(q);
   const channels: Channel[] = [];
   querySnapshot.forEach((doc) => {
