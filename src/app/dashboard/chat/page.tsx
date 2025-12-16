@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -207,10 +206,10 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden" style={{height: 'calc(100dvh - 5.5rem)'}}>
-      <div className="grid md:grid-cols-4 flex-1 h-full overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden" style={{height: 'calc(100vh - 5.5rem)'}}>
+      <div className="grid md:grid-cols-[300px_1fr] flex-1 h-full overflow-hidden">
         {/* Channel List Panel */}
-        <div className="hidden md:flex md:flex-col md:col-span-1 h-full border-r bg-card">
+        <div className="hidden md:flex md:flex-col h-full border-r bg-card/50">
           <div className="flex flex-row items-center justify-between p-4 border-b">
             <h2 className="font-headline text-xl">Channels</h2>
             <Button variant="ghost" size="icon" onClick={() => setShowNewChannelDialog(true)}>
@@ -253,7 +252,7 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 flex flex-col h-full bg-background relative">
+        <div className="flex flex-col h-full bg-secondary/30">
             {selectedChannel ? (
               <>
                 <header className="p-4 border-b bg-card shadow-sm z-10">
@@ -261,7 +260,7 @@ export default function CommunityChatPage() {
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <div className="flex-1 overflow-y-auto bg-secondary/30 p-4 pb-24">
+                <div className="flex-1 overflow-y-auto p-4">
                   <div className="space-y-4">
                       {messages.map((msg) => (
                           <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -305,19 +304,17 @@ export default function CommunityChatPage() {
                   </div>
                 </div>
 
-                <footer className="absolute bottom-0 left-0 right-0 p-4">
-                  <div className="bg-card p-2 rounded-lg shadow-2xl">
-                    <ChatInput
-                      userMentionData={userMentionData}
-                      journalMentionData={journalMentionData}
-                      onSendMessage={handleSendMessage}
-                      disabled={!user}
-                    />
-                  </div>
+                <footer className="p-4 bg-card border-t">
+                  <ChatInput
+                    userMentionData={userMentionData}
+                    journalMentionData={journalMentionData}
+                    onSendMessage={handleSendMessage}
+                    disabled={!user}
+                  />
                 </footer>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-secondary/30">
+              <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
                 <h2 className="text-xl font-bold font-headline">Welcome to SereneNote Chat</h2>
                 <p className="text-muted-foreground max-w-sm">
@@ -399,5 +396,3 @@ export default function CommunityChatPage() {
     </div>
   );
 }
-
-    
