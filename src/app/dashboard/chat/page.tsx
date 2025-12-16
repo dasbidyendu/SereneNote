@@ -252,15 +252,15 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 flex flex-col h-full">
+        <div className="md:col-span-3 flex flex-col h-full bg-background relative">
             {selectedChannel ? (
-              <div className="flex flex-col h-full bg-background">
+              <>
                 <header className="p-4 border-b bg-card">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <main className="flex-1 overflow-y-auto bg-secondary/30">
+                <main className="flex-1 overflow-y-auto bg-secondary/30 pb-24">
                     <div className="p-4 space-y-4">
                         {messages.map((msg) => (
                             <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -301,15 +301,17 @@ export default function CommunityChatPage() {
                     </div>
                 </main>
 
-                <footer className="p-2 border-t bg-card">
-                  <ChatInput
-                    userMentionData={userMentionData}
-                    journalMentionData={journalMentionData}
-                    onSendMessage={handleSendMessage}
-                    disabled={!user}
-                  />
+                <footer className="absolute bottom-0 left-0 right-0 p-4 bg-transparent">
+                    <div className="bg-card p-2 rounded-lg shadow-xl border">
+                      <ChatInput
+                        userMentionData={userMentionData}
+                        journalMentionData={journalMentionData}
+                        onSendMessage={handleSendMessage}
+                        disabled={!user}
+                      />
+                    </div>
                 </footer>
-              </div>
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -393,5 +395,3 @@ export default function CommunityChatPage() {
     </PageShell>
   );
 }
-
-    
