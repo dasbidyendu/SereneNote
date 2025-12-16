@@ -97,11 +97,15 @@ export default function CommunityChatPage() {
         getPublicJournalEntries(firestore)
       ]).then(([fetchedChannels, fetchedUsers, fetchedJournals]) => {
         setChannels(fetchedChannels);
+        if (fetchedChannels.length > 0 && !selectedChannel) {
+          setSelectedChannel(fetchedChannels[0]);
+        }
         setAllUsers(fetchedUsers.filter(u => u.id !== user.uid)); // Exclude self from mentions
         setAllJournals(fetchedJournals);
       }).catch(error => console.error("Error fetching initial chat data:", error))
         .finally(() => setLoadingChannels(false));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, firestore]);
 
   useEffect(() => {
@@ -131,7 +135,7 @@ export default function CommunityChatPage() {
         members: [user.uid],
         memberCount: 1,
       };
-      setChannels(prev => [newChannel, ...prev]);
+      setChannels(prev => [newChannel, ...prev].sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0)));
       setSelectedChannel(newChannel);
       setShowNewChannelDialog(false);
       newChannelForm.reset();
@@ -161,7 +165,7 @@ export default function CommunityChatPage() {
                   } 
                 : c
             );
-            setChannels(updatedChannels);
+            setChannels(updatedChannels.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0)));
         }
     } catch (error) {
         toast({ variant: 'destructive', title: 'Message failed to send' });
@@ -187,7 +191,6 @@ export default function CommunityChatPage() {
     if (journal) {
       setSelectedJournal(journal);
       if (firestore && journal.id) {
-        // Increment read count when viewed
         updateJournalEntry(firestore, journal.id, { readCount: (journal.readCount || 0) + 1 });
       }
     }
@@ -204,120 +207,119 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <PageShell className="p-0 h-[calc(100vh-4.5rem)] md:h-screen">
-      <div className="grid md:grid-cols-4 h-full">
+    <div className="h-full w-full flex flex-col">
+      <div className="grid md:grid-cols-4 flex-1 overflow-hidden">
         {/* Channel List Panel */}
-        <div className="hidden md:flex md:flex-col md:col-span-1 h-full border-r">
-          <Card className="h-full flex flex-col rounded-none border-0">
-            <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-              <CardTitle className="font-headline text-xl">Channels</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setShowNewChannelDialog(true)}>
-                <PlusCircle className="h-5 w-5" />
-              </Button>
-            </CardHeader>
-            <CardContent className="p-2 flex-grow overflow-hidden">
-              <ScrollArea className="h-full pr-4">
-                {loadingChannels ? (
-                  <div className="flex items-center justify-center h-full"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-                ) : channels.length > 0 ? (
-                  <div className="space-y-2">
-                    {channels.map(channel => (
-                      <button
-                        key={channel.id}
-                        onClick={() => setSelectedChannel(channel)}
-                        className={cn(
-                          "w-full text-left p-3 rounded-md border transition-colors",
-                          selectedChannel?.id === channel.id
-                            ? "bg-primary/20 border-primary/50"
-                            : "hover:bg-muted/50 border-transparent"
-                        )}
-                      >
-                        <div className="flex justify-between items-center">
-                          <p className="font-semibold text-sm"># {channel.name}</p>
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Users className="h-3 w-3" />
-                            {channel.memberCount || 0}
-                          </div>
-                        </div>
-                        {channel.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{channel.description}</p>}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground p-4 text-center">No channels yet. Create one!</p>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
+        <div className="hidden md:flex md:flex-col md:col-span-1 h-full border-r bg-card">
+          <div className="flex flex-row items-center justify-between p-4 border-b">
+            <h2 className="font-headline text-xl">Channels</h2>
+            <Button variant="ghost" size="icon" onClick={() => setShowNewChannelDialog(true)}>
+              <PlusCircle className="h-5 w-5" />
+            </Button>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-2">
+            {loadingChannels ? (
+              <div className="flex items-center justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            ) : channels.length > 0 ? (
+              <div className="space-y-1">
+                {channels.map(channel => (
+                  <button
+                    key={channel.id}
+                    onClick={() => setSelectedChannel(channel)}
+                    className={cn(
+                      "w-full text-left p-3 rounded-md border transition-colors",
+                      selectedChannel?.id === channel.id
+                        ? "bg-primary/20 border-primary/50"
+                        : "hover:bg-muted/50 border-transparent"
+                    )}
+                  >
+                    <div className="flex justify-between items-center">
+                      <p className="font-semibold text-sm"># {channel.name}</p>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Users className="h-3 w-3" />
+                        {channel.memberCount || 0}
+                      </div>
+                    </div>
+                    {channel.description && <p className="text-xs text-muted-foreground line-clamp-1 mt-1">{channel.description}</p>}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground p-4 text-center">No channels yet. Create one!</p>
+            )}
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 flex flex-col h-full bg-background relative">
+        <div className="md:col-span-3 flex flex-col h-full bg-secondary/30">
             {selectedChannel ? (
-              <>
-                <header className="p-4 border-b bg-card">
+              <div className="flex flex-col h-full">
+                <header className="p-4 border-b bg-card shadow-sm z-10">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <main className="flex-1 overflow-y-auto bg-secondary/30 pb-24">
-                    <div className="p-4 space-y-4">
-                        {messages.map((msg) => (
-                            <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
-                            {msg.authorId !== user?.uid && (
-                                <Avatar className="h-8 w-8">
-                                <AvatarImage src={msg.authorPhotoURL} />
-                                <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
-                                </Avatar>
-                            )}
-                            <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm")}>
-                                <p className="text-sm whitespace-pre-wrap">
-                                    {msg.parts?.map((part, index) => {
-                                        if (part.type === 'text') {
-                                            return <span key={index}>{part.text}</span>;
-                                        }
-                                        if (part.type === 'mention' && part.mention) {
-                                            return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
-                                        }
-                                        if (part.type === 'journal' && part.journal) {
-                                            return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
-                                        }
-                                        return null;
-                                    })}
-                                </p>
-                                <p className={cn("text-xs mt-1 text-right", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                                {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
-                                </p>
-                            </div>
-                            {msg.authorId === user?.uid && (
-                                <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.photoURL || ''} />
-                                <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
-                                </Avatar>
-                            )}
-                            </div>
-                        ))}
-                        <div ref={messagesEndRef} />
-                    </div>
-                </main>
+                <div className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-4">
+                      {messages.map((msg) => (
+                          <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
+                          {msg.authorId !== user?.uid && (
+                              <Avatar className="h-8 w-8">
+                              <AvatarImage src={msg.authorPhotoURL} />
+                              <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
+                              </Avatar>
+                          )}
+                          <div className={cn(
+                              "max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden", 
+                              msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm"
+                          )}>
+                              <p className="text-sm break-words whitespace-pre-wrap">
+                                  {msg.parts?.map((part, index) => {
+                                      if (part.type === 'text') {
+                                          return <span key={index}>{part.text}</span>;
+                                      }
+                                      if (part.type === 'mention' && part.mention) {
+                                          return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
+                                      }
+                                      if (part.type === 'journal' && part.journal) {
+                                          return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
+                                      }
+                                      return null;
+                                  })}
+                              </p>
+                              <p className={cn("text-xs mt-2 text-right opacity-70", msg.authorId === user?.uid ? "text-primary-foreground" : "text-muted-foreground")}>
+                              {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
+                              </p>
+                          </div>
+                          {msg.authorId === user?.uid && (
+                              <Avatar className="h-8 w-8">
+                              <AvatarImage src={user.photoURL || ''} />
+                              <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
+                              </Avatar>
+                          )}
+                          </div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                  </div>
+                </div>
 
-                <footer className="absolute bottom-0 left-0 right-0 p-4 bg-transparent">
-                    <div className="bg-card p-2 rounded-lg shadow-xl border">
-                      <ChatInput
-                        userMentionData={userMentionData}
-                        journalMentionData={journalMentionData}
-                        onSendMessage={handleSendMessage}
-                        disabled={!user}
-                      />
-                    </div>
+                <footer className="p-4 bg-card border-t">
+                  <ChatInput
+                    userMentionData={userMentionData}
+                    journalMentionData={journalMentionData}
+                    onSendMessage={handleSendMessage}
+                    disabled={!user}
+                  />
                 </footer>
-              </>
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                <h2 className="text-xl font-bold font-headline">Welcome to the Community Chat</h2>
+                <h2 className="text-xl font-bold font-headline">Welcome to SereneNote Chat</h2>
                 <p className="text-muted-foreground max-w-sm">
-                  Select a channel to view the conversation, or create a new one to get started. Your first message in a channel makes you a member.
+                  Select a channel to view the conversation, or create a new one to get started.
                 </p>
               </div>
             )}
@@ -392,6 +394,8 @@ export default function CommunityChatPage() {
             </DialogContent>
         )}
       </Dialog>
-    </PageShell>
+    </div>
   );
 }
+
+    
