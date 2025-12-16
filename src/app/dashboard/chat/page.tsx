@@ -207,8 +207,8 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden" style={{height: 'calc(100vh - 5.5rem)'}}>
-      <div className="grid md:grid-cols-[300px_1fr] flex-1 h-full overflow-hidden">
+    <div className="h-full w-full flex flex-col">
+      <div className="grid md:grid-cols-[300px_1fr] flex-1 h-[calc(100vh-5.5rem)] overflow-hidden">
         {/* Channel List Panel */}
         <div className="hidden md:flex md:flex-col h-full border-r bg-card/50">
           <div className="flex flex-row items-center justify-between p-4 border-b">
@@ -261,8 +261,8 @@ export default function CommunityChatPage() {
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <div className="overflow-y-auto p-4 bg-muted/40">
-                  <div className="space-y-4">
+                <div className="overflow-y-auto bg-muted/40">
+                  <div className="p-4 space-y-4">
                       {messages.map((msg) => (
                           <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
                           {msg.authorId !== user?.uid && (
@@ -396,4 +396,5 @@ export default function CommunityChatPage() {
       </Dialog>
     </div>
   );
-}
+
+    
