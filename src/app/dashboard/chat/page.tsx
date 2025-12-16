@@ -96,9 +96,10 @@ export default function CommunityChatPage() {
         getAllUsers(firestore),
         getPublicJournalEntries(firestore)
       ]).then(([fetchedChannels, fetchedUsers, fetchedJournals]) => {
-        setChannels(fetchedChannels);
-        if (fetchedChannels.length > 0 && !selectedChannel) {
-          setSelectedChannel(fetchedChannels[0]);
+        const sortedChannels = fetchedChannels.sort((a, b) => (b.memberCount || 0) - (a.memberCount || 0));
+        setChannels(sortedChannels);
+        if (sortedChannels.length > 0 && !selectedChannel) {
+          setSelectedChannel(sortedChannels[0]);
         }
         setAllUsers(fetchedUsers.filter(u => u.id !== user.uid)); // Exclude self from mentions
         setAllJournals(fetchedJournals);
@@ -207,8 +208,8 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col">
-      <div className="grid md:grid-cols-4 flex-1 overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
+      <div className="grid md:grid-cols-4 flex-1 h-full overflow-hidden">
         {/* Channel List Panel */}
         <div className="hidden md:flex md:flex-col md:col-span-1 h-full border-r bg-card">
           <div className="flex flex-row items-center justify-between p-4 border-b">
@@ -253,7 +254,7 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 flex flex-col h-full bg-secondary/30">
+        <div className="md:col-span-3 flex flex-col h-full bg-background">
             {selectedChannel ? (
               <div className="flex flex-col h-full">
                 <header className="p-4 border-b bg-card shadow-sm z-10">
@@ -261,7 +262,7 @@ export default function CommunityChatPage() {
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="flex-1 overflow-y-auto bg-secondary/30 p-4">
                   <div className="space-y-4">
                       {messages.map((msg) => (
                           <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -315,7 +316,7 @@ export default function CommunityChatPage() {
                 </footer>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-secondary/30">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
                 <h2 className="text-xl font-bold font-headline">Welcome to SereneNote Chat</h2>
                 <p className="text-muted-foreground max-w-sm">
@@ -397,5 +398,3 @@ export default function CommunityChatPage() {
     </div>
   );
 }
-
-    
