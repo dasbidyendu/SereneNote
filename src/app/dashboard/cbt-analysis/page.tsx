@@ -10,8 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { getAllUserJournalEntries, JournalEntry } from '@/firebase/firestore/journals';
-import { cbtStressAlleviationSuggestions } from '@/ai/flows/cbt-stress-alleviation-suggestions';
-import { textToSpeech } from '@/ai/flows/text-to-speech-flow';
+import { cbtWithAudio } from '@/ai/flows/cbt-with-audio-flow';
 import { Timestamp, type Firestore } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,7 +24,7 @@ interface AnalysisData {
   suggestions: string;
   guidedMeditation: string;
   reflectiveExercise: string;
-  meditationAudioUri?: string;
+  meditationAudioUri: string;
 }
 
 export default function CbtAnalysisPage() {
@@ -64,13 +63,13 @@ export default function CbtAnalysisPage() {
     setAnalysis(null);
     setIsAnalyzing(true);
     try {
-      setAnalysisStep('Analyzing your thoughts...');
-      const result = await cbtStressAlleviationSuggestions({
+      setAnalysisStep('Generating AI analysis and audio...');
+      const result = await cbtWithAudio({
         journalEntry: entry.content,
         mood: entry.mood,
       });
 
-      const analysisData = {
+      setAnalysis({
         entry: {
           journalEntry: entry.content,
           mood: entry.mood,
@@ -79,15 +78,7 @@ export default function CbtAnalysisPage() {
         suggestions: result.suggestions,
         guidedMeditation: result.guidedMeditation,
         reflectiveExercise: result.reflectiveExercise,
-      };
-      setAnalysis(analysisData);
-
-      setAnalysisStep('Generating guided meditation audio...');
-      const audioResult = await textToSpeech({ text: result.guidedMeditation });
-      
-      setAnalysis({
-        ...analysisData,
-        meditationAudioUri: audioResult.audioDataUri,
+        meditationAudioUri: result.meditationAudioUri,
       });
 
     } catch (error) {
