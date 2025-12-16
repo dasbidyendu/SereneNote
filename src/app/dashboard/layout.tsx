@@ -37,6 +37,7 @@ import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationBell } from '@/components/notification-bell';
 import { cleanupListeners } from '@/firebase/listeners';
+import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -92,6 +93,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
   }
 
+  // The chat page has its own full-height layout, so we remove the default padding for it.
+  const isChatPage = pathname === '/dashboard/chat';
+
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
@@ -138,14 +142,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
            </Button>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>
+      <SidebarInset className={cn(isChatPage && "flex flex-col")}>
         <div className="md:hidden flex items-center justify-between p-2 border-b">
            <SidebarTrigger />
            <Logo />
            <NotificationBell />
         </div>
-        <div className="flex-1 bg-[url('/download(1).jpg')] bg-cover bg-center">
-          <div className="h-full w-full bg-background/80">
+        <div className={cn("flex-1 bg-[url('/download(1).jpg')] bg-cover bg-center", isChatPage && "flex flex-col")}>
+          <div className={cn("h-full w-full bg-background/80", isChatPage && "flex-1")}>
             {children}
           </div>
         </div>
@@ -153,3 +157,5 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    

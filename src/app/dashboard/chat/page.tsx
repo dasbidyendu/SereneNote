@@ -204,21 +204,12 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <PageShell>
-      <div className="flex items-center gap-4 mb-4">
-        <MessageSquare className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold font-headline">Community Chat</h1>
-          <p className="text-muted-foreground">
-            Connect and chat with other users in real-time. Use @ to mention users and # to link journals.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-4 gap-8 h-[calc(100vh-12rem)]">
-        <div className="md:col-span-1 h-full">
-          <Card className="h-full flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between p-4">
+    <PageShell className="p-0 md:p-0">
+      <div className="grid md:grid-cols-4 h-full">
+        {/* Channel List Panel */}
+        <div className="md:col-span-1 h-full border-r">
+          <Card className="h-full flex flex-col rounded-none border-0">
+            <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
               <CardTitle className="font-headline text-xl">Channels</CardTitle>
               <Button variant="ghost" size="icon" onClick={() => setShowNewChannelDialog(true)}>
                 <PlusCircle className="h-5 w-5" />
@@ -260,16 +251,18 @@ export default function CommunityChatPage() {
           </Card>
         </div>
 
+        {/* Chat Panel */}
         <div className="md:col-span-3 h-full">
-          <Card className="h-full flex flex-col">
+          <div className="h-full flex flex-col">
             {selectedChannel ? (
               <>
-                <CardHeader className="p-4 border-b">
+                <div className="p-4 border-b">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
-                </CardHeader>
-                <CardContent className="flex-1 p-0 overflow-hidden">
-                  <ScrollArea className="h-full p-4 space-y-4">
+                </div>
+                
+                <div className="flex-1 p-4 overflow-y-auto bg-secondary/30">
+                  <div className="space-y-4">
                     {messages.map((msg) => (
                         <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
                         {msg.authorId !== user?.uid && (
@@ -278,7 +271,7 @@ export default function CommunityChatPage() {
                             <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
                             </Avatar>
                         )}
-                        <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-muted")}>
+                        <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm")}>
                             <p className="text-sm whitespace-pre-wrap">
                                 {msg.parts?.map((part, index) => {
                                     if (part.type === 'text') {
@@ -293,7 +286,7 @@ export default function CommunityChatPage() {
                                     return null;
                                 })}
                             </p>
-                            <p className={cn("text-xs mt-1", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                            <p className={cn("text-xs mt-1 text-right", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
                             {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
                             </p>
                         </div>
@@ -306,16 +299,17 @@ export default function CommunityChatPage() {
                         </div>
                     ))}
                     <div ref={messagesEndRef} />
-                  </ScrollArea>
-                </CardContent>
-                <CardFooter className="p-2 border-t">
+                  </div>
+                </div>
+
+                <div className="p-2 border-t bg-background">
                   <ChatInput
                     userMentionData={userMentionData}
                     journalMentionData={journalMentionData}
                     onSendMessage={handleSendMessage}
                     disabled={!user}
                   />
-                </CardFooter>
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
@@ -326,7 +320,7 @@ export default function CommunityChatPage() {
                 </p>
               </div>
             )}
-          </Card>
+          </div>
         </div>
       </div>
 
@@ -400,5 +394,6 @@ export default function CommunityChatPage() {
       </Dialog>
     </PageShell>
   );
+}
 
     
