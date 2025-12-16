@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, MessageSquare, PlusCircle, Users } from 'lucide-react';
+import { Loader2, MessageSquare, PlusCircle, Users, Hash } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -111,7 +111,9 @@ export default function CommunityChatPage() {
       setMessages([]);
       return;
     }
-    const unsubscribe = getMessages(firestore, selectedChannel.id, setMessages);
+    const unsubscribe = getMessages(firestore, selectedChannel.id, (newMessages) => {
+        setMessages(newMessages);
+    });
     return () => unsubscribe();
   }, [firestore, selectedChannel]);
 
@@ -205,7 +207,7 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <div className="h-full w-full flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden" style={{height: 'calc(100dvh - 5.5rem)'}}>
       <div className="grid md:grid-cols-4 flex-1 h-full overflow-hidden">
         {/* Channel List Panel */}
         <div className="hidden md:flex md:flex-col md:col-span-1 h-full border-r bg-card">
@@ -251,15 +253,15 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 flex flex-col h-full bg-background">
+        <div className="md:col-span-3 flex flex-col h-full bg-background relative">
             {selectedChannel ? (
-              <div className="flex flex-col h-full">
+              <>
                 <header className="p-4 border-b bg-card shadow-sm z-10">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </header>
                 
-                <div className="flex-1 overflow-y-auto bg-secondary/30 p-4">
+                <div className="flex-1 overflow-y-auto bg-secondary/30 p-4 pb-24">
                   <div className="space-y-4">
                       {messages.map((msg) => (
                           <div key={msg.id} className={cn("flex items-end gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -303,15 +305,17 @@ export default function CommunityChatPage() {
                   </div>
                 </div>
 
-                <footer className="p-4 bg-card border-t">
-                  <ChatInput
-                    userMentionData={userMentionData}
-                    journalMentionData={journalMentionData}
-                    onSendMessage={handleSendMessage}
-                    disabled={!user}
-                  />
+                <footer className="absolute bottom-0 left-0 right-0 p-4">
+                  <div className="bg-card p-2 rounded-lg shadow-2xl">
+                    <ChatInput
+                      userMentionData={userMentionData}
+                      journalMentionData={journalMentionData}
+                      onSendMessage={handleSendMessage}
+                      disabled={!user}
+                    />
+                  </div>
                 </footer>
-              </div>
+              </>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4 bg-secondary/30">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -394,5 +398,6 @@ export default function CommunityChatPage() {
       </Dialog>
     </div>
   );
+}
 
     
