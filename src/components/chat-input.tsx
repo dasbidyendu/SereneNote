@@ -70,20 +70,23 @@ export function ChatInput({
       : { type: 'journal', journal: { id: item.id, title: item.display } };
     
     const lastTriggerIndex = inputValue.lastIndexOf(activeTrigger!);
-    const textBefore = inputValue.substring(0, lastTriggerIndex);
+    const textBefore = inputValue.substring(0, lastTriggerIndex).trim();
 
-    const existingTextPartIndex = parts.findIndex(p => p.type === 'text');
-    if (textBefore && existingTextPartIndex !== -1) {
-        // Append to existing text part
-        const updatedParts = [...parts];
-        updatedParts[existingTextPartIndex].text += textBefore;
-        setParts([...updatedParts, newPart]);
-    } else if (textBefore) {
-        // Create a new text part
-        setParts([...parts, { type: 'text', text: textBefore }, newPart]);
-    } else {
-        setParts([...parts, newPart]);
+    let newParts = [...parts];
+
+    if (textBefore) {
+      const lastPart = newParts.length > 0 ? newParts[newParts.length - 1] : null;
+      if (lastPart && lastPart.type === 'text') {
+        // Append to existing last text part
+        lastPart.text = `${lastPart.text} ${textBefore}`;
+      } else {
+        // Add new text part
+        newParts.push({ type: 'text', text: textBefore });
+      }
     }
+    
+    newParts.push(newPart);
+    setParts(newParts);
     
     setInputValue('');
     setActiveTrigger(null);
@@ -99,59 +102,60 @@ export function ChatInput({
       handleSubmit();
     }
      if (e.key === 'Backspace' && inputValue === '' && parts.length > 0) {
-      e.preventDefault();
-      // If the last part is text, trim it. Otherwise, remove the last pill.
-      const lastPart = parts[parts.length - 1];
-      if (lastPart.type === 'text' && lastPart.text) {
-          if (lastPart.text.length > 1) {
-             const newParts = [...parts];
-             newParts[newParts.length - 1].text = lastPart.text.slice(0, -1);
-             setParts(newParts);
-          } else {
-             setParts(parts.slice(0, -1));
-          }
-      } else {
-         setParts(parts.slice(0, -1));
-      }
+        e.preventDefault();
+        // Remove the last part
+        setParts(parts.slice(0, -1));
     }
   };
 
   const handleSubmit = () => {
     let finalParts = [...parts];
     if (inputValue.trim()) {
-      finalParts.push({ type: 'text', text: inputValue });
+      const trimmedText = inputValue.trim();
+      const lastPart = finalParts.length > 0 ? finalParts[finalParts.length - 1] : null;
+      if (lastPart && lastPart.type === 'text') {
+        lastPart.text += ` ${trimmedText}`;
+      } else {
+        finalParts.push({ type: 'text', text: trimmedText });
+      }
     }
     if (finalParts.length > 0) {
       onSendMessage(finalParts);
       setParts([]);
       setInputValue('');
+       if (inputRef.current) {
+        inputRef.current.textContent = '';
+      }
     }
   };
+
+  const renderParts = () => {
+    const elements: JSX.Element[] = [];
+    parts.forEach((part, index) => {
+        if (part.type === 'text') {
+            elements.push(<span key={`text-${index}`} className="text-sm">{part.text}</span>)
+        } else if (part.type === 'mention' && part.mention) {
+            elements.push(<span key={`mention-${index}`} className="bg-primary/30 px-2 py-1 rounded text-sm mx-1 inline-block">@{part.mention.name}</span>)
+        } else if (part.type === 'journal' && part.journal) {
+            elements.push(<span key={`journal-${index}`} className="bg-accent/20 text-accent-foreground px-2 py-1 rounded text-sm mx-1 inline-block">#{part.journal.title}</span>)
+        }
+    });
+    return elements;
+  }
 
   return (
     <Popover open={popoverOpen && filteredData.length > 0} onOpenChange={setPopoverOpen}>
       <div className="flex w-full gap-2 items-end">
         <PopoverTrigger asChild>
-          <div className="flex-grow bg-background rounded-md border border-input p-2 flex flex-wrap items-center gap-1 min-h-[40px]">
-            {parts.map((part, index) => (
-              <span key={index} className={cn(
-                  "py-0.5 px-2 rounded-md text-sm leading-tight",
-                  part.type === 'mention' ? 'bg-blue-500/20 text-blue-300' : 
-                  part.type === 'journal' ? 'bg-purple-500/20 text-purple-300' :
-                  'bg-transparent'
-              )}>
-                {part.type === 'text' && part.text}
-                {part.type === 'mention' && `@${part.mention?.name}`}
-                {part.type === 'journal' && `#${part.journal?.title}`}
-              </span>
-            ))}
+          <div className="flex-grow bg-background rounded-md border border-input p-2 flex flex-wrap items-center gap-x-1 gap-y-2 min-h-[40px]">
+            {renderParts()}
             <div
               ref={inputRef}
               contentEditable
               onInput={handleInputChange}
               onKeyDown={handleKeyDown}
               className="flex-1 min-w-[50px] outline-none text-sm bg-transparent"
-              data-placeholder="Type a message..."
+              data-placeholder={parts.length === 0 ? "Type a message..." : ""}
             />
           </div>
         </PopoverTrigger>
@@ -190,3 +194,4 @@ export function ChatInput({
     </Popover>
   );
 }
+
