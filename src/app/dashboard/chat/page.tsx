@@ -204,7 +204,7 @@ export default function CommunityChatPage() {
   }
 
   return (
-    <PageShell className="p-0 md:p-0">
+    <PageShell className="p-0 md:p-0 h-[calc(100vh-4.5rem)] md:h-screen">
       <div className="grid md:grid-cols-4 h-full">
         {/* Channel List Panel */}
         <div className="md:col-span-1 h-full border-r">
@@ -252,65 +252,66 @@ export default function CommunityChatPage() {
         </div>
 
         {/* Chat Panel */}
-        <div className="md:col-span-3 h-full">
-          <div className="h-full flex flex-col">
+        <div className="md:col-span-3 h-full flex flex-col">
             {selectedChannel ? (
-              <>
-                <div className="p-4 border-b">
+              <Card className="h-full flex flex-col rounded-none border-0">
+                <CardHeader className="p-4 border-b">
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
-                </div>
+                </CardHeader>
                 
-                <div className="flex-1 p-4 overflow-y-auto bg-secondary/30">
-                  <div className="space-y-4">
-                    {messages.map((msg) => (
-                        <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
-                        {msg.authorId !== user?.uid && (
-                            <Avatar className="h-8 w-8">
-                            <AvatarImage src={msg.authorPhotoURL} />
-                            <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
-                            </Avatar>
-                        )}
-                        <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm")}>
-                            <p className="text-sm whitespace-pre-wrap">
-                                {msg.parts?.map((part, index) => {
-                                    if (part.type === 'text') {
-                                        return <span key={index}>{part.text}</span>;
-                                    }
-                                    if (part.type === 'mention' && part.mention) {
-                                        return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
-                                    }
-                                    if (part.type === 'journal' && part.journal) {
-                                        return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
-                                    }
-                                    return null;
-                                })}
-                            </p>
-                            <p className={cn("text-xs mt-1 text-right", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                            {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
-                            </p>
+                <CardContent className="flex-1 p-0 overflow-hidden">
+                    <ScrollArea className="h-full p-4 bg-secondary/30">
+                        <div className="space-y-4">
+                            {messages.map((msg) => (
+                                <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
+                                {msg.authorId !== user?.uid && (
+                                    <Avatar className="h-8 w-8">
+                                    <AvatarImage src={msg.authorPhotoURL} />
+                                    <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
+                                    </Avatar>
+                                )}
+                                <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm")}>
+                                    <p className="text-sm whitespace-pre-wrap">
+                                        {msg.parts?.map((part, index) => {
+                                            if (part.type === 'text') {
+                                                return <span key={index}>{part.text}</span>;
+                                            }
+                                            if (part.type === 'mention' && part.mention) {
+                                                return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
+                                            }
+                                            if (part.type === 'journal' && part.journal) {
+                                                return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
+                                            }
+                                            return null;
+                                        })}
+                                    </p>
+                                    <p className={cn("text-xs mt-1 text-right", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                                    {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
+                                    </p>
+                                </div>
+                                {msg.authorId === user?.uid && (
+                                    <Avatar className="h-8 w-8">
+                                    <AvatarImage src={user.photoURL || ''} />
+                                    <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
+                                    </Avatar>
+                                )}
+                                </div>
+                            ))}
+                            <div ref={messagesEndRef} />
                         </div>
-                        {msg.authorId === user?.uid && (
-                            <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.photoURL || ''} />
-                            <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
-                            </Avatar>
-                        )}
-                        </div>
-                    ))}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </div>
+                    </ScrollArea>
+                </CardContent>
 
-                <div className="p-2 border-t bg-background">
+                <CardFooter className="p-2 border-t bg-background">
                   <ChatInput
                     userMentionData={userMentionData}
                     journalMentionData={journalMentionData}
                     onSendMessage={handleSendMessage}
                     disabled={!user}
                   />
-                </div>
-              </>
+                </CardFooter>
+              </Card>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <MessageSquare className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -320,7 +321,6 @@ export default function CommunityChatPage() {
                 </p>
               </div>
             )}
-          </div>
         </div>
       </div>
 
