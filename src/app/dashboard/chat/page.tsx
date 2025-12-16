@@ -269,44 +269,46 @@ export default function CommunityChatPage() {
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </CardHeader>
                 <CardContent className="flex-1 p-0 overflow-y-auto">
-                    <div className="p-4 space-y-4">
-                      {messages.map((msg) => (
-                        <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
-                          {msg.authorId !== user?.uid && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={msg.authorPhotoURL} />
-                              <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
-                            </Avatar>
-                          )}
-                          <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-muted")}>
-                            <p className="text-sm whitespace-pre-wrap">
-                                {msg.parts?.map((part, index) => {
-                                    if (part.type === 'text') {
-                                        return <span key={index}>{part.text}</span>;
-                                    }
-                                    if (part.type === 'mention' && part.mention) {
-                                        return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
-                                    }
-                                    if (part.type === 'journal' && part.journal) {
-                                        return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
-                                    }
-                                    return null;
-                                })}
-                            </p>
-                            <p className={cn("text-xs mt-1", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                              {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
-                            </p>
-                          </div>
-                          {msg.authorId === user?.uid && (
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.photoURL || ''} />
-                              <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
-                            </Avatar>
-                          )}
+                    <ScrollArea className="h-full">
+                        <div className="p-4 space-y-4">
+                          {messages.map((msg) => (
+                            <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
+                              {msg.authorId !== user?.uid && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={msg.authorPhotoURL} />
+                                  <AvatarFallback>{getInitials(msg.authorName)}</AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div className={cn("max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden break-words", msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-muted")}>
+                                <p className="text-sm whitespace-pre-wrap">
+                                    {msg.parts?.map((part, index) => {
+                                        if (part.type === 'text') {
+                                            return <span key={index}>{part.text}</span>;
+                                        }
+                                        if (part.type === 'mention' && part.mention) {
+                                            return <strong key={index} className="bg-primary/30 px-1 py-0.5 rounded">@{part.mention.name}</strong>
+                                        }
+                                        if (part.type === 'journal' && part.journal) {
+                                            return <button key={index} onClick={() => handleJournalClick(part.journal!.id)} className="font-semibold text-accent-foreground hover:underline bg-accent/20 px-1 py-0.5 rounded">#{part.journal.title}</button>
+                                        }
+                                        return null;
+                                    })}
+                                </p>
+                                <p className={cn("text-xs mt-1", msg.authorId === user?.uid ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                                  {msg.createdAt instanceof Timestamp ? formatDistanceToNow(msg.createdAt.toDate(), { addSuffix: true }) : 'sending...'}
+                                </p>
+                              </div>
+                              {msg.authorId === user?.uid && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={user.photoURL || ''} />
+                                  <AvatarFallback>{getInitials(user.displayName || '')}</AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+                          ))}
+                          <div ref={messagesEndRef} />
                         </div>
-                      ))}
-                      <div ref={messagesEndRef} />
-                    </div>
+                    </ScrollArea>
                 </CardContent>
                 <CardFooter className="p-2 border-t">
                   <ChatInput
