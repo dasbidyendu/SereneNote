@@ -2,6 +2,7 @@
 'use client';
 import { doc, getDoc, setDoc, Firestore, updateDoc, arrayUnion, arrayRemove, collection, getDocs, DocumentData, WithFieldValue, onSnapshot, query, orderBy, writeBatch } from 'firebase/firestore';
 import type { User } from 'firebase/auth';
+import { registerListener } from '../listeners';
 
 export interface UserProfile extends DocumentData {
   id?: string;
@@ -94,6 +95,9 @@ export function getNotifications(
         });
         callback(notifications);
     });
+    
+    // Register the listener for cleanup on logout
+    registerListener(unsubscribe);
 
     return unsubscribe;
 }

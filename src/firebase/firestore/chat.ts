@@ -23,6 +23,7 @@ import {
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { User } from 'firebase/auth';
+import { registerListener } from '../listeners';
 
 export interface Channel {
   id?: string;
@@ -126,6 +127,8 @@ export function getMessages(
         errorEmitter.emit('permission-error', permissionError);
     });
   
+    // Register the listener for cleanup on logout
+    registerListener(unsubscribe);
     return unsubscribe;
 }
 
@@ -151,10 +154,10 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
     
     const channelRef = doc(db, 'channels', channelId);
     const messagesCollection = collection(channelRef, 'messages');
-    const messageRef = doc(messagesCollection); // pre-generate ID
-
+    
     try {
         const batch = writeBatch(db);
+        const messageRef = doc(messagesCollection); // pre-generate ID for use in notifications
 
         // 1. Set the new message
         batch.set(messageRef, message);
@@ -184,8 +187,6 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
         }
         
         // 3. Check if user is a member, if not, add them.
-        // This is now done outside a transaction, which is simpler but has a small race condition risk.
-        // For this app's purpose, it's an acceptable trade-off to simplify security rules.
         const channelDoc = await getDoc(channelRef);
         if (channelDoc.exists() && !channelDoc.data().members?.includes(user.uid)) {
             batch.update(channelRef, {

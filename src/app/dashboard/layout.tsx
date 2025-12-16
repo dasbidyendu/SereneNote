@@ -36,6 +36,7 @@ import { getFirebaseServices } from '@/firebase/client';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationBell } from '@/components/notification-bell';
+import { cleanupListeners } from '@/firebase/listeners';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -70,6 +71,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       if (auth) {
         await signOut(auth);
+        cleanupListeners(); // Clean up all active listeners
         toast({
           title: 'Logged Out',
           description: 'You have been successfully logged out.',

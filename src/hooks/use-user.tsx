@@ -7,6 +7,7 @@ import { getFirebaseServices } from '@/firebase/client';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { getUserProfile, UserProfile } from '@/firebase/firestore/users';
+import { cleanupListeners } from '@/firebase/listeners';
 
 export interface UserContextType {
   user: User | null;
@@ -45,6 +46,12 @@ export function UserProvider({ children }: UserProviderProps) {
         return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+      
+      // If user logs out, clean up all listeners first
+      if (!authUser) {
+        cleanupListeners();
+      }
+
       setUser(authUser);
       if (authUser && firestore) {
         try {
