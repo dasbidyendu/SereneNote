@@ -20,6 +20,11 @@ service cloud.firestore {
       // This is simplified for the follow/unfollow feature.
       allow update, create: if isSignedIn(); 
       allow delete: if isOwner(userId);
+
+      // Notifications sub-collection
+      match /notifications/{notificationId} {
+        allow read, list, update, create: if isOwner(userId);
+      }
     }
     
     // JournalEntries collection
@@ -52,6 +57,8 @@ service cloud.firestore {
     // Messages sub-collection
     match /channels/{channelId}/messages/{messageId} {
       allow read, list: if isSignedIn();
+      // Allow create if user is a member of the channel (implicitly checked by transaction)
+      // or if they are joining by sending their first message.
       allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
     }
   }

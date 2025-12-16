@@ -35,6 +35,7 @@ import { useUser } from '@/hooks/use-user';
 import { getFirebaseServices } from '@/firebase/client';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
+import { NotificationBell } from '@/components/notification-bell';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -92,8 +93,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <SidebarProvider>
       <Sidebar variant="inset" collapsible="icon">
-        <SidebarHeader>
+        <SidebarHeader className="flex items-center justify-between">
           <Logo />
+          <div className="group-data-[collapsible=icon]:hidden">
+            <NotificationBell />
+          </div>
         </SidebarHeader>
         <SidebarContent>
           <SidebarMenu>
@@ -136,6 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <div className="md:hidden flex items-center justify-between p-2 border-b">
            <SidebarTrigger />
            <Logo />
+           <NotificationBell />
         </div>
         <div className="flex-1 bg-[url('/download(1).jpg')] bg-cover bg-center">
           <div className="h-full w-full bg-background/80">
