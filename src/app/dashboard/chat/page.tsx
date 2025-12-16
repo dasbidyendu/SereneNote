@@ -268,7 +268,7 @@ export default function CommunityChatPage() {
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </CardHeader>
-                <CardContent className="flex-1 p-0 overflow-y-auto">
+                <CardContent className="flex-1 p-0 overflow-hidden">
                     <ScrollArea className="h-full">
                         <div className="p-4 space-y-4">
                           {messages.map((msg) => (
@@ -402,5 +402,3 @@ export default function CommunityChatPage() {
       </Dialog>
     </PageShell>
   );
-
-    
