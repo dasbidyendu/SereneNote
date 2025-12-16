@@ -202,15 +202,15 @@ export default function DashboardPage() {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
         <div>
           <h1 className="text-3xl font-bold font-headline">Good Morning, {user?.displayName?.split(' ')[0] || 'User'}</h1>
           <p className="text-muted-foreground">Here is your emotional summary and some tasks for the day.</p>
         </div>
       </div>
       
-      <div className="grid md:grid-cols-3 gap-8">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Weekly Mood Analysis</CardTitle>
@@ -229,7 +229,7 @@ export default function DashboardPage() {
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart 
                         data={chartData} 
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
                         onClick={handleChartClick}
                       >
                         <CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -269,7 +269,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
-        <div className="md:col-span-1">
+        <div className="lg:col-span-1">
           <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 font-headline">
@@ -313,3 +313,5 @@ export default function DashboardPage() {
     </PageShell>
   );
 }
+
+    
