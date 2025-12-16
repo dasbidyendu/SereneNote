@@ -18,6 +18,7 @@ import {
   arrayUnion,
   increment,
   writeBatch,
+  getDoc,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
