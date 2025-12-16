@@ -397,5 +397,3 @@ export default function CommunityChatPage() {
     </div>
   );
 }
-
-    
