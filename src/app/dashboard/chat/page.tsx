@@ -69,11 +69,8 @@ export default function CommunityChatPage() {
   const [isCreatingChannel, setIsCreatingChannel] = useState(false);
   const [showNewChannelDialog, setShowNewChannelDialog] = useState(false);
 
-  // Data for autocompletion
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [allJournals, setAllJournals] = useState<JournalEntry[]>([]);
-
-  // For viewing a journal
   const [selectedJournal, setSelectedJournal] = useState<JournalEntry | null>(null);
 
   const newChannelForm = useForm<NewChannelFormValues>({
@@ -101,7 +98,7 @@ export default function CommunityChatPage() {
         if (sortedChannels.length > 0 && !selectedChannel) {
           setSelectedChannel(sortedChannels[0]);
         }
-        setAllUsers(fetchedUsers.filter(u => u.id !== user.uid)); // Exclude self from mentions
+        setAllUsers(fetchedUsers.filter(u => u.id !== user.uid));
         setAllJournals(fetchedJournals);
       }).catch(error => console.error("Error fetching initial chat data:", error))
         .finally(() => setLoadingChannels(false));
@@ -273,10 +270,10 @@ export default function CommunityChatPage() {
                               </Avatar>
                           )}
                           <div className={cn(
-                              "max-w-xs md:max-w-md p-3 rounded-lg overflow-hidden", 
+                              "max-w-xs md:max-w-md p-3 rounded-lg break-words", 
                               msg.authorId === user?.uid ? "bg-primary/90 text-primary-foreground" : "bg-card shadow-sm"
                           )}>
-                              <p className="text-sm break-words whitespace-pre-wrap">
+                              <p className="text-sm whitespace-pre-wrap">
                                   {msg.parts?.map((part, index) => {
                                       if (part.type === 'text') {
                                           return <span key={index}>{part.text}</span>;
@@ -397,4 +394,5 @@ export default function CommunityChatPage() {
       </Dialog>
     </div>
   );
-}
+
+    
