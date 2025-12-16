@@ -153,29 +153,13 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
     const messageRef = doc(messagesCollection); // pre-generate ID
 
     try {
-        await runTransaction(db, async (transaction) => {
-            const channelDoc = await transaction.get(channelRef);
-            if (!channelDoc.exists()) {
-                throw new Error("Channel does not exist!");
-            }
-            
-            transaction.set(messageRef, message);
-
-            const channelData = channelDoc.data();
-            const members = channelData.members || [];
-            
-            if (!members.includes(user.uid)) {
-                transaction.update(channelRef, {
-                    members: arrayUnion(user.uid),
-                    memberCount: increment(1)
-                });
-            }
-        });
-        
-        // After transaction, create notifications
         const batch = writeBatch(db);
-        const mentions = structuredMessage.parts.filter(p => p.type === 'mention' && p.mention?.userId);
+
+        // 1. Set the new message
+        batch.set(messageRef, message);
         
+        // 2. Handle notifications for mentions
+        const mentions = structuredMessage.parts.filter(p => p.type === 'mention' && p.mention?.userId);
         if (mentions.length > 0) {
             const messageSnippet = createMessageSnippet(structuredMessage.parts);
             for (const part of mentions) {
@@ -196,11 +180,23 @@ export async function sendMessage(db: Firestore, user: User, channelId: string, 
                     read: false,
                 });
             }
-            await batch.commit();
         }
+        
+        // 3. Check if user is a member, if not, add them.
+        // This is now done outside a transaction, which is simpler but has a small race condition risk.
+        // For this app's purpose, it's an acceptable trade-off to simplify security rules.
+        const channelDoc = await getDoc(channelRef);
+        if (channelDoc.exists() && !channelDoc.data().members?.includes(user.uid)) {
+            batch.update(channelRef, {
+                members: arrayUnion(user.uid),
+                memberCount: increment(1)
+            });
+        }
+        
+        await batch.commit();
 
     } catch (e: any) {
-        console.error("Transaction/Notification failed: ", e);
+        console.error("Batch write failed: ", e);
          const permissionError = new FirestorePermissionError({
           path: messagesCollection.path,
           operation: 'create',
