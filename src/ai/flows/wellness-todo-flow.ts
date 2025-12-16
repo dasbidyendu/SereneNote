@@ -30,7 +30,7 @@ export async function getWellnessTodos(
 
 const prompt = ai_.definePrompt({
   name: 'wellnessTodoPrompt',
-  model: 'googleai/gemini-2.5-flash-lite',
+  model: 'googleai/gemini-pro',
   input: {schema: WellnessTodoInputSchema},
   output: {schema: WellnessTodoOutputSchema},
   prompt: `You are a friendly and encouraging wellness coach. Based on the user's mood trend over the last week, provide 2-3 simple, actionable, and positive to-do items to help them improve their well-being. Frame them as tasks.
