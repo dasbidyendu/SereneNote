@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -267,8 +268,7 @@ export default function CommunityChatPage() {
                   <h2 className="font-bold text-lg font-headline"># {selectedChannel.name}</h2>
                   <p className="text-sm text-muted-foreground">{selectedChannel.description || 'Welcome to the channel!'}</p>
                 </CardHeader>
-                <CardContent className="flex-1 p-0 overflow-hidden">
-                  <ScrollArea className="h-full">
+                <CardContent className="flex-1 p-0 overflow-y-auto">
                     <div className="p-4 space-y-4">
                       {messages.map((msg) => (
                         <div key={msg.id} className={cn("flex items-start gap-3", msg.authorId === user?.uid && "justify-end")}>
@@ -307,7 +307,6 @@ export default function CommunityChatPage() {
                       ))}
                       <div ref={messagesEndRef} />
                     </div>
-                  </ScrollArea>
                 </CardContent>
                 <CardFooter className="p-2 border-t">
                   <ChatInput
@@ -401,4 +400,5 @@ export default function CommunityChatPage() {
       </Dialog>
     </PageShell>
   );
-}
+
+    
